@@ -1,0 +1,9 @@
+// Cloudflare hosting: serves the built app (the dist folder) as a static site.
+// The "name" must match the project name chosen in the Cloudflare dashboard.
+{
+  "name": "mealplanner",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}
