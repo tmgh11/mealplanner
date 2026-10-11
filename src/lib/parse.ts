@@ -63,7 +63,13 @@ const NUM = String.raw`\d+(?:[.,]\d+)?(?:\s+\d+\/\d+|\/\d+(?:\.\d+)?|\s*[-–]\s
 export function parseLine(input: string): ParsedLine {
   const text = input.trim().replace(/\s+/g, ' ');
   let s = text.replace(/[½¼¾⅓⅔⅛]/g, (c) => ` ${FRACTIONS[c]}`).replace(/(\d) (\d\/\d)/, '$1 $2').trim();
-  s = s.replace(/^[-•*·]\s*/, '');
+  s = s.replace(/^[-•*·]\s*/, '').replace(/[;,]+$/, '');
+  // amount at the end: "fish sauce 1 tbsp", "bean sprouts 100g" → "1 tbsp fish sauce"
+  const tailAmount = s.match(/^([A-Za-z][^\d]*?)\s+(\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l|tbsp|tsp|tablespoons?|teaspoons?|cups?)?)\s*$/i);
+  if (tailAmount) s = `${tailAmount[2]} ${tailAmount[1]}`;
+  // "garlic x2 crushed" → "2 garlic crushed"
+  const times = s.match(/^([A-Za-z][^\d]*?)\s+x\s?(\d+)\b(.*)$/i);
+  if (times) s = `${times[2]} ${times[1]}${times[3]}`;
   const out: ParsedLine = { text, name: '' };
 
   // "1.5/225g zucchini": a count with its weight
@@ -131,6 +137,15 @@ export function parseLine(input: string): ParsedLine {
     if (out.qty == null) out.qty = 1;
   }
 
+  // "2 garlic cloves crushed": the count word inside the name
+  if (!out.unit && out.qty != null) {
+    const inner = s.match(/\b(cloves?|fillets?|tins?|cans?|rashers?)\b/i);
+    if (inner) {
+      out.unit = UNITS[inner[1].toLowerCase()];
+      s = s.replace(inner[0], ' ');
+    }
+  }
+
   out.name = s.replace(/\s+/g, ' ').replace(/[.;:]+$/, '').trim();
   const note = notes.filter(Boolean).join(', ');
   if (note) out.note = note;
@@ -182,4 +197,13 @@ export function formatQty(qty?: number, unit?: string): string {
   if (unit === 'g' || unit === 'ml' || unit === 'kg' || unit === 'l') return `${nice(qty)} ${unit}`;
   const plural = qty > 1 && !['tsp', 'tbsp', 'dsp', 'oz', 'lb', 'medium', 'large', 'small'].includes(unit);
   return `${nice(qty)} ${unit}${plural ? (unit.endsWith('ch') ? 'es' : 's') : ''}`;
+}
+
+/** "FOR THE SAUCE:", "Nuria added:", "Topping" in capitals: a heading in an ingredient list, not a food. */
+export function isHeading(line: string): boolean {
+  const t = line.trim();
+  if (!t || /\d/.test(t)) return false;
+  if (/:$/.test(t) && t.length <= 40) return true;
+  const letters = t.replace(/[^A-Za-z]/g, '');
+  return letters.length >= 4 && letters === letters.toUpperCase() && t.split(/\s+/).length <= 6;
 }

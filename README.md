@@ -7,13 +7,15 @@ Recipes, meals and shopping for Tom and Nuria, built like [Billsplit](https://gi
 - **Calendar:** a week at a time, with breakfast, lunch, snacks and dinner. Every meal is for Tom, Nuria or Both: the Tom / Nuria / Both switch shows one person, or both side by side with shared meals spanning the width. A meal can be a saved recipe (with each person's portion in servings or grams of the cooked dish), a list of weighed items ("120g chicken, 100g broccoli…"), or just a note ("Pizza night"). Labels like "Legume Day" and a Leftovers marker are kept. If someone tracks nutrition, each day shows their total against their target.
 - **Menus:** a run of days (Day 1, Day 2…) you can drop onto the calendar from any date for any number of days. A short menu repeats, a long one is cut. Choose who it's for, and whether to keep or replace meals already planned (with Undo). Save any stretch of the calendar as a new menu.
 - **Import a spreadsheet:** Menus → Import spreadsheet reads an .xlsx laid out like Nuria's (Breakfast / Lunch / Snacks / Dinner columns, a row per day) and makes a menu per sheet. Amounts are matched to foods; the spreadsheet's own calorie numbers are not copied.
-- **Shopping list:** one list for both of you, grouped by supermarket aisle, with tick-off that syncs live. Add everything for a run of days on the calendar (for Tom, Nuria or both; amounts scaled to who's eating, leftovers and notes skipped, meals already on the list not added twice), add a recipe's ingredients from its page, or type items in. The same food from several meals shows as one line with the total ("Chicken 1.1 kg"); tap it to see which meals it's for and who added it. Ticked items go to "In the basket" and can be cleared with Undo.
+- **Shopping list:** one list for both of you, grouped by supermarket aisle, with tick-off that syncs live. Add everything for a run of days on the calendar (for Tom, Nuria or both; amounts scaled to who's eating, leftovers and notes skipped, meals already on the list not added twice), add a recipe's ingredients from its page, or type items in. The same food from several meals shows as one line with the total ("Chicken 1.1 kg"); tap it to see which meals it's for and who added it. Ticked items go to "In the basket" and can be cleared with Undo. "Clear the whole list…" at the bottom needs a press-and-hold, so it can't happen by accident (and still has Undo).
 - **Recipes:** ingredients in grams, marked Tom's, Nuria's or ours. Paste ingredients one per line, or Nuria-style comma lists. Each line is matched to a food and turned into grams; "4 cloves" or "1 tin" use a typical weight, and the app says when it has.
+- **Import from Paprika:** Recipes → Import from Paprika reads a `.paprikarecipes` export: photos, categories (as tags), ratings, notes and source links come across, and ingredients are matched to foods. Recipes already imported are skipped.
+- **Browser:** paste a recipe link (or, on Android, Share → Meal Planner from Chrome) and the app reads the recipe off the page, matches the ingredients and lets you check before saving. Typing words instead searches the web. Needs the one-off "Recipe reader" step below.
 - **UK food data:** 2,886 foods from the government's CoFID 2021 dataset, with separate raw, dried and cooked entries. The app prefers raw and flags foods where raw versus cooked matters (pasta, rice, lentils, meat).
 - **Your own values win:** correct any food's values (e.g. from a packet label) or add foods the UK data lacks (gluten-free bread, oat milk). The original values are kept, and you can reset.
 - **Nutrition is opt-in per person:** nobody sees numbers unless they switch tracking on in Settings.
 
-Coming next: the recipe browser (import recipes from websites and from Paprika).
+Foods (the UK data plus your own) live under Settings → Foods.
 
 ---
 
@@ -26,6 +28,8 @@ Use a **new** project, separate from Billsplit's.
 3. Go to **Authentication → Users → Add user → Create new user**. Add Tom's email and a password, and tick **Auto Confirm User**. Repeat for Nuria.
 4. Go to **Authentication → Sign In / Providers** and turn **off** "Allow new users to sign up".
 5. Copy the **Project URL** (`https://<project-ref>.supabase.co`) and the **publishable key** (`sb_publishable_…`) from the **Connect** button. The key is designed to be public: row-level security means only your two signed-in accounts can read or write anything.
+
+6. **Recipe reader** (for the Browser): go to **Edge Functions → Deploy a new function → Via Editor**. Name it `fetch-recipe`, replace the example code with the whole of [`supabase/functions/fetch-recipe/index.ts`](supabase/functions/fetch-recipe/index.ts), and press **Deploy**. Leave "Verify JWT" on, so only your signed-in accounts can use it. (Phones can't read other websites directly, so this small function fetches the page for the app.)
 
 > Free Supabase projects pause after about a week with no activity. If that happens, press **Resume project** in the dashboard. The app keeps working offline on each phone in the meantime and syncs once the project is back.
 
@@ -42,7 +46,7 @@ The app lives at **https://mealplanner.tom1609.workers.dev**, its own address, s
 ## 3. Install on your phones
 
 - **iPhone (Safari):** open the site, then tap **Share → Add to Home Screen**.
-- **Android (Chrome):** open the site, then tap **⋮ → Install app**.
+- **Android (Chrome):** open the site, then tap **⋮ → Install app**. Once installed, Meal Planner appears in Chrome's **Share** menu for sending recipe pages to the Browser (it can take a day for Chrome to pick this up after an update).
 
 Open **https://mealplanner.tom1609.workers.dev** to install. On first open, pick whose phone it is. Then sign in under **Settings → Sync between phones** with that person's email and password.
 
@@ -53,7 +57,7 @@ Open **https://mealplanner.tom1609.workers.dev** to install. On first open, pick
 ```bash
 npm install
 npm run dev      # also opens on your network – visit the "Network" URL from your phone
-npm test         # ingredient reading, food matching, nutrition maths, menus, spreadsheet import, shopping list
+npm test         # ingredient reading, food matching, nutrition maths, menus, spreadsheet import, shopping list, Paprika and web recipes
 npm run build
 ```
 

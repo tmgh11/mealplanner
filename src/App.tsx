@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { BrowserView } from './components/BrowserView';
+import { findUrl } from './lib/recipeWeb';
 import { CalendarView } from './components/CalendarView';
 import { MenusView } from './components/MenusView';
 import { RecipesView } from './components/RecipesView';
@@ -8,13 +10,20 @@ import { SettingsView } from './components/SettingsView';
 import { Icon, ToastHost } from './components/ui';
 import { store, useStore } from './lib/store';
 
-type Tab = 'calendar' | 'shopping' | 'recipes' | 'menus' | 'foods' | 'settings';
+type Tab = 'calendar' | 'shopping' | 'recipes' | 'browser' | 'menus' | 'foods' | 'settings';
 
-const TITLES: Record<Tab, string> = { calendar: 'Calendar', shopping: 'Shopping list', recipes: 'Recipes', menus: 'Menus', foods: 'Foods', settings: 'Settings' };
+const TITLES: Record<Tab, string> = { calendar: 'Calendar', shopping: 'Shopping list', recipes: 'Recipes', browser: 'Browser', menus: 'Menus', foods: 'Foods', settings: 'Settings' };
 
 export default function App() {
   const { sync, device, settings, loaded } = useStore();
-  const [tab, setTab] = useState<Tab>('calendar');
+  // a recipe link shared into the app (Android's Share menu opens ./?url=… or ./?text=…)
+  const [incoming, setIncoming] = useState<string | undefined>(() => {
+    const q = new URLSearchParams(window.location.search);
+    const shared = findUrl(`${q.get('url') ?? ''} ${q.get('text') ?? ''} ${q.get('title') ?? ''}`);
+    if (shared) window.history.replaceState(null, '', window.location.pathname);
+    return shared;
+  });
+  const [tab, setTab] = useState<Tab>(incoming ? 'browser' : 'calendar');
 
   const go = (t: Tab) => {
     setTab(t);
@@ -55,7 +64,16 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1>{TITLES[tab]}</h1>
+        {tab === 'foods' ? (
+          <h1 className="back-title">
+            <button className="icon-btn" onClick={() => go('settings')} aria-label="Back to Settings">
+              <Icon name="left" size={18} />
+            </button>
+            Foods
+          </h1>
+        ) : (
+          <h1>{TITLES[tab]}</h1>
+        )}
         <span className="top-actions">
           <button className="sync-pill" onClick={() => go('settings')} aria-label={`Sync status: ${pill}`}>
             <span className={`dot ${dot}`} />
@@ -71,9 +89,10 @@ export default function App() {
         {tab === 'calendar' && <CalendarView />}
         {tab === 'shopping' && <ShoppingView />}
         {tab === 'recipes' && <RecipesView />}
+        {tab === 'browser' && <BrowserView incoming={incoming} onIncomingUsed={() => setIncoming(undefined)} />}
         {tab === 'menus' && <MenusView />}
         {tab === 'foods' && <FoodsView />}
-        {tab === 'settings' && <SettingsView />}
+        {tab === 'settings' && <SettingsView onFoods={() => go('foods')} />}
       </main>
 
       <nav className="tabbar" aria-label="Main">
@@ -81,8 +100,8 @@ export default function App() {
           <TabBtn active={tab === 'calendar'} onClick={() => go('calendar')} icon="calendar" label="Calendar" />
           <TabBtn active={tab === 'shopping'} onClick={() => go('shopping')} icon="cart" label="Shopping" />
           <TabBtn active={tab === 'recipes'} onClick={() => go('recipes')} icon="book" label="Recipes" />
+          <TabBtn active={tab === 'browser'} onClick={() => go('browser')} icon="globe" label="Browser" />
           <TabBtn active={tab === 'menus'} onClick={() => go('menus')} icon="list" label="Menus" />
-          <TabBtn active={tab === 'foods'} onClick={() => go('foods')} icon="leaf" label="Foods" />
         </div>
       </nav>
       <ToastHost />
@@ -90,7 +109,7 @@ export default function App() {
   );
 }
 
-function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: 'book' | 'leaf' | 'list' | 'calendar' | 'cart'; label: string }) {
+function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: 'book' | 'globe' | 'list' | 'calendar' | 'cart'; label: string }) {
   return (
     <button className={`tab${active ? ' active' : ''}`} onClick={onClick} aria-current={active ? 'page' : undefined}>
       <Icon name={icon} size={22} />

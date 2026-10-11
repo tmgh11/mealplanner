@@ -189,3 +189,38 @@ describe('alternatives and unit-less items', () => {
     expect(resolveLine('30ml oatmilk', foods).ingredient.foodId).toBeUndefined();
   });
 });
+
+describe('more ways people write ingredients', () => {
+  it('reads amounts at the end and "x2"', () => {
+    expect(parseLine('fish sauce 1 tbsp')).toMatchObject({ qty: 1, unit: 'tbsp', name: 'fish sauce' });
+    expect(parseLine('bean sprouts 100g')).toMatchObject({ qty: 100, unit: 'g', name: 'bean sprouts' });
+    expect(parseLine('garlic x2 crushed')).toMatchObject({ qty: 2, name: 'garlic crushed' });
+    expect(parseLine('2 garlic cloves crushed')).toMatchObject({ qty: 2, unit: 'clove' });
+  });
+  it('treats headings, seasoning and water as not counted', () => {
+    expect(resolveLine('FOR THE CRISPY BREADCRUMBS:', foods).ingredient).toMatchObject({ heading: true, foodId: null, text: 'FOR THE CRISPY BREADCRUMBS' });
+    expect(resolveLine('salt and pepper', foods).ingredient.foodId).toBeNull();
+    expect(resolveLine('2.5 cup warm water', foods).ingredient.foodId).toBeNull();
+    expect(byId.get(resolveLine('1 tsp salt', foods).ingredient.foodId!)!.name).toBe('Salt');
+  });
+  it('matches prep-worded lines', () => {
+    expect(byId.get(resolveLine('2 garlic cloves crushed', foods).ingredient.foodId!)!.name).toBe('Garlic, raw');
+    expect(resolveLine('2 garlic cloves crushed', foods).ingredient.grams).toBe(8);
+    expect(byId.get(resolveLine('2 tsp smoked paprika', foods).ingredient.foodId!)!.name).toBe('Paprika');
+    expect(byId.get(resolveLine('300g tagliatelle', foods).ingredient.foodId!)!.name).toMatch(/^Pasta, white, dried, raw/);
+  });
+});
+
+describe('matches that would give badly wrong numbers', () => {
+  const m = (t: string) => byId.get(resolveLine(t, foods).ingredient.foodId!)?.name;
+  it('gets these right', () => {
+    expect(m('1l hot vegetable stock')).toBe('Stock cubes, chicken, made up with water');
+    expect(m('1 lemon, zest only')).toMatch(/^Lemons/);
+    expect(m('2 tsp ground coriander')).toBe('Coriander seeds');
+    expect(m('bacon')).toMatch(/^Bacon rashers, back.*raw/);
+    expect(m('oil to pan fry')).toBe('Oil, vegetable, average');
+    expect(m('1 tsp oregano')).toMatch(/^Oregano, dried/);
+    expect(m('2 cans chickpeas, drained')).toMatch(/^Beans, chick peas, canned/);
+    expect(m('2 x 400g cans black beans drained and rinsed')).toBeUndefined();
+  });
+});

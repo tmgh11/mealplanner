@@ -5,7 +5,7 @@ import { isISODate } from '../lib/dates';
 type IconName =
   | 'plus' | 'camera' | 'arrows' | 'repeat' | 'chart' | 'list' | 'settings' | 'close' | 'trash' | 'check'
   | 'left' | 'right' | 'search' | 'swap' | 'upload' | 'download' | 'pause' | 'play' | 'cloud'
-  | 'book' | 'leaf' | 'edit' | 'link' | 'alert' | 'scale' | 'calendar' | 'cart';
+  | 'book' | 'leaf' | 'edit' | 'link' | 'alert' | 'scale' | 'calendar' | 'cart' | 'globe';
 
 const PATHS: Record<IconName, ReactNode> = {
   plus: <path d="M12 5v14M5 12h14" />,
@@ -51,6 +51,12 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <rect x="4" y="5" width="16" height="15" rx="2.5" />
       <path d="M4 10h16M9 3v4M15 3v4" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
     </>
   ),
   cart: (
@@ -360,4 +366,44 @@ export function haptic() {
   } catch {
     /* not supported (iOS) */
   }
+}
+
+/**
+ * A button that only fires after being pressed and held (for things that are hard to undo by
+ * accident, like clearing the whole shopping list). A bar fills while it's held.
+ */
+export function HoldButton({ ms = 1500, onDone, children, className = '' }: { ms?: number; onDone: () => void; children: ReactNode; className?: string }) {
+  const [holding, setHolding] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  const start = () => {
+    setHolding(true);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      setHolding(false);
+      haptic();
+      onDone();
+    }, ms);
+  };
+  const stop = () => {
+    window.clearTimeout(timer.current);
+    setHolding(false);
+  };
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  return (
+    <button
+      type="button"
+      className={`btn hold-btn ${className}${holding ? ' holding' : ''}`}
+      style={{ ['--hold-ms' as string]: `${ms}ms` }}
+      onPointerDown={start}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+      onContextMenu={(e) => e.preventDefault()}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !e.repeat && start()}
+      onKeyUp={stop}
+    >
+      <span className="hold-fill" aria-hidden="true" />
+      <span className="hold-label">{children}</span>
+    </button>
+  );
 }

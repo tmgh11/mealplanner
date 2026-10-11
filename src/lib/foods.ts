@@ -101,9 +101,27 @@ function applyEdit(base: Food, e: FoodEntry): Food {
 
 /** Words people use → the word CoFID uses. */
 const SYNONYMS: Record<string, string> = {
+  'smoked paprika': 'paprika', 'sweet paprika': 'paprika', 'ground cumin': 'cumin seeds', cumin: 'cumin seeds',
+  'dijon mustard': 'mustard powder made up', 'wholegrain mustard': 'mustard powder made up', 'english mustard': 'mustard powder made up', mustard: 'mustard powder made up',
+  'cinnamon stick': 'cinnamon ground', cinnamon: 'cinnamon ground', 'caster sugar': 'sugar white', 'golden caster sugar': 'sugar white', 'golden sugar': 'sugar white',
+  'granulated sugar': 'sugar white', 'light brown soft sugar': 'sugar brown', 'soft brown sugar': 'sugar brown', 'brown sugar': 'sugar brown', 'icing sugar': 'sugar icing', sugar: 'sugar white',
+  'balsamic vinegar': 'vinegar', 'rice wine vinegar': 'vinegar', 'cider vinegar': 'vinegar', 'white wine vinegar': 'vinegar', 'red wine vinegar': 'vinegar',
+  pineapple: 'pineapple flesh only', 'puff pastry': 'pastry puff', 'black pepper': 'pepper black', 'soy sauce': 'soy sauce', 'coconut milk': 'coconut milk',
+  'tomato paste': 'tomato puree', 'tomato puree': 'tomato puree', worcestershire: 'worcestershire sauce', lime: 'limes flesh only', limes: 'limes flesh only',
+  'spring onions': 'spring onions bulbs and tops', 'spring onion': 'spring onions bulbs and tops', 'chicken thighs and drumsticks': 'chicken dark meat',
+  sausages: 'sausages pork', sausage: 'sausages pork', 'pork sausages': 'sausages pork', tagliatelle: 'pasta white dried', linguine: 'pasta white dried', linguini: 'pasta white dried',
+  penne: 'pasta white dried', fusilli: 'pasta white dried', rigatoni: 'pasta white dried', 'arborio rice': 'rice white arborio', 'risotto rice': 'rice white arborio',
+  peanuts: 'peanuts kernel only plain', 'peanut butter': 'peanut butter smooth', 'chilli flakes': 'chilli powder', 'chilli powder': 'chilli powder', ginger: 'ginger fresh',
+  parsley: 'parsley fresh', basil: 'basil fresh', coriander: 'coriander leaves fresh', thyme: 'thyme fresh', 'lemon thyme': 'thyme fresh', oregano: 'oregano dried',
+  lemon: 'lemons whole', lemons: 'lemons whole', bacon: 'bacon rashers back raw', 'smoked bacon': 'bacon rashers back raw', 'bacon lardons': 'bacon rashers back raw',
+  'vegetable stock': 'stock cubes chicken made up water', 'chicken stock': 'stock cubes chicken made up water', 'beef stock': 'stock cubes chicken made up water',
+  'vegetable broth': 'stock cubes chicken made up water', 'chicken broth': 'stock cubes chicken made up water', stock: 'stock cubes chicken made up water',
+  'stock cube': 'stock cubes chicken', 'kallo cube': 'stock cubes vegetable', 'ground coriander': 'coriander seeds', oil: 'oil vegetable average', 'vegetable oil': 'oil vegetable average',
+  'plum tomatoes': 'tomatoes canned', 'sea salt': 'salt', 'salt flakes': 'salt', 'fish sauce': 'fish sauce',
+  'red onions': 'onions', 'long-stem broccoli': 'broccoli green', 'garlic cloves': 'garlic', 'garlic clove': 'garlic',
   zucchini: 'courgette', zucchinis: 'courgette', eggplant: 'aubergine', arugula: 'rocket', tenderstem: 'broccoli',
-  scallion: 'spring onion', scallions: 'spring onion', cilantro: 'coriander',
-  garbanzo: 'beans chick peas whole', chickpea: 'beans chick peas whole', chickpeas: 'beans chick peas whole', mince: 'beef mince', 'mince meat': 'beef mince', 'minced beef': 'beef mince',
+  scallion: 'spring onions bulbs and tops', scallions: 'spring onions bulbs and tops', cilantro: 'coriander',
+  garbanzo: 'beans chick peas', chickpea: 'beans chick peas', chickpeas: 'beans chick peas', mince: 'beef mince', 'mince meat': 'beef mince', 'minced beef': 'beef mince',
   'ground beef': 'beef mince', 'lean beef mince': 'beef mince extra lean', yoghurt: 'yogurt plain', prawn: 'prawns', shrimp: 'prawns',
   capsicum: 'peppers', 'bell pepper': 'peppers', 'cottage cheese': 'cheese cottage', 'cheddar': 'cheese cheddar',
   'parmesan': 'cheese parmesan', 'feta': 'cheese feta', halloumi: 'cheese halloumi', mozzarella: 'cheese mozzarella',
@@ -136,7 +154,11 @@ const SYNONYMS: Record<string, string> = {
 const STOP = new Set(['of', 'the', 'and', 'with', 'a', 'an', 'fresh', 'frozen', 'organic', 'large', 'medium', 'small', 'chopped', 'diced',
   'sliced', 'finely', 'roughly', 'peeled', 'side', 'some', 'little', 'natural', 'skinless', 'boneless', 'to', 'taste', 'for', 'serving',
   'optional', 'extra', 'virgin', 'de', 'con', 'en', 'y', 'with', 'uncooked', 'cooked', 'x', 'g', 'ml', 'sauteed', 'cube', 'day', 'swap', 'carb', 'legume', 'mixed', 'or', 'oz',
-  'tbsp', 'tsp']);
+  'tbsp', 'tsp', 'crushed', 'minced', 'grated', 'thinly', 'cut', 'into', 'wedges', 'chunks', 'pieces', 'cubes', 'cubed', 'halved', 'quartered',
+  'torn', 'peeled', 'deveined', 'trimmed', 'drained', 'rinsed', 'washed', 'beaten', 'softened', 'melted', 'room', 'temperature', 'range',
+  'freshly', 'kosher', 'coarse', 'flaky', 'sized', 'button', 'ready', 'readymade', 'prepared', 'sachet', 'pack', 'packet', 'jar', 'about',
+  'approx', 'abt', 'plus', 'more', 'few', 'good', 'splash', 'knob', 'knobs', 'roasting', 'variety', 'clove', 'cloves', 'stick', 'sticks', 'bunch',
+  'generous', 'deseeded', 'seeded', 'shredded', 'zest', 'ground', 'roughly', 'large', 'thick', 'thin', 'slices', 'bite', 'shaped', 'tablespoon', 'teaspoon', 'pressed', 'cm', 'inch', 'removed', 'stem', 'skin', 'on', 'thumb', 'pan', 'fry', 'frying', 'drizzling', 'drizzle', 'greasing', 'serve', 'brushing']);
 /** Words that narrow the choice when present but don't rule a food out when missing. */
 const SOFT = new Set(['raw', 'dry', 'dried', 'boiled', 'steamed', 'grilled', 'roasted', 'baked', 'poached', 'whole', 'plain', 'lean', 'low',
   'fat', 'light', 'free', 'average', 'meat', 'only', 'flesh', 'extra', 'reduced']);
@@ -181,8 +203,11 @@ export function queryWords(name: string): string[] {
   return [...new Set(n.split(/[\s,/-]+/).filter((w) => w && !STOP.has(w) && !/^\d/.test(w)).map(stem))];
 }
 
+/** Words that change which food it is: a match can't leave them out ("black beans" aren't butter beans). */
+const MUST = new Set(['black', 'red', 'green', 'white', 'brown', 'yellow', 'sweet', 'smoked', 'wholemeal', 'gluten', 'soya', 'oat', 'almond', 'coconut', 'goat', 'kidney', 'butter']);
+
 /** "chick" matches "chicken", "bread" doesn't match "breadfruit". */
-const close = (x: string, w: string) => x === w || (w.length >= 4 && x.startsWith(w) && x.length - w.length <= 3);
+const close = (x: string, w: string) => x === w || (w.length >= 4 && x.startsWith(w) && x.length - w.length <= 2);
 
 export interface Match {
   food: Food;
@@ -205,12 +230,17 @@ export function searchFoods(foods: Food[], name: string, opts: { state?: 'raw' |
   for (const it of index(foods)) {
     let hits = 0;
     let headHits = 0;
+    let missedKey = false;
     for (const w of q) {
       if (it.words.some((x) => close(x, w))) hits++;
+      else if (MUST.has(w)) missedKey = true;
       if (it.head.some((x) => close(x, w))) headHits++;
     }
+    if (missedKey) continue;
     // every word must match (one may be missing from a longer description)
     if (!headHits || hits < q.length - (q.length >= 3 ? 1 : 0)) continue;
+    // a dish of several foods ("Rice and black-eye beans") is not what someone means by one of them
+    if (it.head.includes('and') && !it.head.every((x) => x === 'and' || q.some((w) => close(x, w)) || soft.includes(x))) continue;
     const name = it.food.name.toLowerCase();
     let score = hits * 10 + 6 + headHits - (q.length - hits) * 8 - it.len * 0.6;
     // a dish whose name starts with other foods ("Rice and red kidney beans") is not the food itself
@@ -224,7 +254,7 @@ export function searchFoods(foods: Food[], name: string, opts: { state?: 'raw' |
       if (/\braw\b/.test(name)) score -= 3;
     } else if (/\braw\b/.test(name)) score += 5;
     if (opts.state === 'dry' && /\bdried\b/.test(name)) score += 4;
-    if (opts.state !== 'dry' && !/\bdried\b/.test(raw) && /\bdried\b/.test(name) && !/\b(lentil|pea|chick|pasta|noodle|rice)/.test(name)) score -= 6;
+    if (opts.state !== 'dry' && !soft.includes('dried') && !/\bdried\b/.test(raw) && /\bdried\b/.test(name) && !/\b(lentil|pea|chick|pasta|noodle|rice)/.test(name)) score -= 6;
     if (!/fruit|flavour/.test(raw) && /\b(fruit|flavoured?|toffee|hazelnut)\b/.test(name) && /^yogurt|^fromage/.test(name)) score -= 4;
     if (/weighed with|homemade|retail|takeaway|fried in|in batter|coated|stuffed|with sauce|ready meal/.test(name)) score -= 6;
     if (/\bin salted water|salt added|\bsweetened|in syrup|with sugar/.test(name)) score -= 3;

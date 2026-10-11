@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Icon } from './ui';
 import { WhoSwitch, WhoTag, useView } from './WhoSwitch';
 import { RecipeEditor } from './RecipeEditor';
+import { PaprikaImportSheet } from './ImportRecipes';
 import { useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { perServing, recipeTotals, fmtKcal } from '../lib/nutrition';
@@ -20,6 +21,7 @@ export function RecipesView() {
   const tracking = useTracking();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<{ recipe?: Recipe } | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const shown = useMemo(() => {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
@@ -57,6 +59,7 @@ export function RecipesView() {
             const kcal = t ? perServing(r, t).kcal : null;
             return (
               <button key={r.id} className="row" onClick={() => setOpen({ recipe: r })}>
+                {r.photo ? <img className="thumb" src={r.photo} alt="" loading="lazy" /> : <span className="thumb empty"><Icon name="book" size={18} /></span>}
                 <span className="row-main">
                   <span className="row-title">{r.title || 'Untitled recipe'}</span>
                   <span className="row-sub">
@@ -74,6 +77,10 @@ export function RecipesView() {
         </div>
       )}
 
+      <button className="btn small import-link" onClick={() => setImporting(true)}>
+        <Icon name="upload" size={16} /> Import from Paprika
+      </button>
+
       <div className="home-actions">
         <button className="btn primary add" onClick={() => setOpen({})}>
           <Icon name="plus" size={22} stroke={2.4} /> Add recipe
@@ -81,6 +88,7 @@ export function RecipesView() {
       </div>
 
       {open && <RecipeEditor initial={open.recipe} onClose={() => setOpen(null)} />}
+      {importing && <PaprikaImportSheet onClose={() => setImporting(false)} />}
     </>
   );
 }

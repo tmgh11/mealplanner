@@ -22,7 +22,7 @@ const TARGETS: { key: keyof Omit<Tracking, 'on'>; label: string; unit: string }[
   { key: 'fat', label: 'Fat', unit: 'g' },
 ];
 
-export function SettingsView() {
+export function SettingsView({ onFoods }: { onFoods: () => void }) {
   const { settings, device, sync } = useStore();
   const [names, setNames] = useState(settings.names);
   const [url, setUrl] = useState(device.supabaseUrl ?? '');
@@ -137,6 +137,17 @@ export function SettingsView() {
       </div>
       <p className="small-print">Optional, per person. Daily targets show against each day on the calendar.</p>
 
+      <div className="section-title">Foods</div>
+      <div className="card set-group">
+        <button className="set-row" onClick={onFoods}>
+          <span className="grow">
+            <div style={{ fontWeight: 600 }}>Foods and their values</div>
+            <div className="hint">Search the UK food data, correct values, add your own foods</div>
+          </span>
+          <Icon name="right" size={18} />
+        </button>
+      </div>
+
       <div className="section-title">Names</div>
       <div className="card set-group">
         <div className="set-row">
@@ -215,10 +226,6 @@ export function SettingsView() {
       </div>
       <input ref={backupRef} type="file" accept=".json,application/json" hidden onChange={(e) => { void importBackup(e.target.files?.[0]); e.target.value = ''; }} />
 
-      <div className="section-title">Coming next</div>
-      <div className="card pad text-2" style={{ fontSize: 14 }}>
-        The recipe browser (saving recipes from websites, and importing from Paprika) arrives in the next phase.
-      </div>
 
       <p className="small-print" style={{ marginTop: 22 }}>
         Food values: McCance and Widdowson’s Composition of Foods Integrated Dataset 2021 (Public Health England). Contains public sector

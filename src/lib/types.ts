@@ -70,6 +70,8 @@ export interface Ingredient {
   grams?: number;
   /** someone typed the grams in, rather than the app working them out */
   gramsSetByHand?: boolean;
+  /** a heading inside the list, e.g. "FOR THE SAUCE:" (not a food) */
+  heading?: boolean;
 }
 
 export interface Recipe extends Base {
@@ -85,6 +87,10 @@ export interface Recipe extends Base {
   sourceUrl?: string;
   tags: string[];
   rating?: number;
+  /** a small photo: a data: URL (imported) or a web address */
+  photo?: string;
+  /** where it was imported from, so it isn't imported twice, e.g. "paprika:<uid>" */
+  importId?: string;
   createdBy?: Person;
 }
 

@@ -52,6 +52,16 @@ export function IngredientsEditor({
       {ingredients.length > 0 && (
         <div className="card ing-list">
           {ingredients.map((ing) => {
+            if (ing.heading) {
+              return (
+                <div key={ing.id} className="ing ing-heading">
+                  <span>{ing.text}</span>
+                  <button className="icon-btn small" onClick={() => onChange(ingredients.filter((x) => x.id !== ing.id))} aria-label={`Remove ${ing.text}`}>
+                    <Icon name="close" size={14} />
+                  </button>
+                </div>
+              );
+            }
             const food = ing.foodId ? foods.get(ing.foodId) : undefined;
             const f = flags(ing, food);
             return (

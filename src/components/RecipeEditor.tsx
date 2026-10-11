@@ -21,12 +21,12 @@ const num = (s: string) => {
   return s.trim() && Number.isFinite(n) && n > 0 ? n : undefined;
 };
 
-export function RecipeEditor({ initial, onClose }: { initial?: Recipe; onClose: () => void }) {
+export function RecipeEditor({ initial, draft, onClose }: { initial?: Recipe; draft?: Recipe; onClose: () => void }) {
   const { settings, device } = useStore();
   const view = useView();
   const foods = useFoods();
   const tracking = useTracking();
-  const [r, setR] = useState<Recipe>(() => initial ?? { ...blank(view), createdBy: device.me });
+  const [r, setR] = useState<Recipe>(() => initial ?? draft ?? { ...blank(view), createdBy: device.me });
   const [tags, setTags] = useState((initial?.tags ?? []).join(', '));
   const [orig] = useState(r);
   const dirty = JSON.stringify(r) !== JSON.stringify(orig) || tags !== (initial?.tags ?? []).join(', ');
@@ -94,6 +94,14 @@ export function RecipeEditor({ initial, onClose }: { initial?: Recipe; onClose: 
         </div>
       }
     >
+      {r.photo && (
+        <div className="hero-wrap">
+          <img className="hero" src={r.photo} alt="" onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = 'none')} />
+          <button className="icon-btn small hero-remove" onClick={() => set({ photo: undefined })} aria-label="Remove photo">
+            <Icon name="close" size={14} />
+          </button>
+        </div>
+      )}
       <div className="field">
         <label htmlFor="rt">Name</label>
         <input id="rt" className="input" value={r.title} onChange={(e) => set({ title: e.target.value })} placeholder="e.g. Lentil and chorizo stew" />
