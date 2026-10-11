@@ -1,17 +1,19 @@
 import { useState } from 'react';
+import { CalendarView } from './components/CalendarView';
+import { MenusView } from './components/MenusView';
 import { RecipesView } from './components/RecipesView';
 import { FoodsView } from './components/FoodsView';
 import { SettingsView } from './components/SettingsView';
 import { Icon, ToastHost } from './components/ui';
 import { store, useStore } from './lib/store';
 
-type Tab = 'recipes' | 'foods' | 'settings';
+type Tab = 'calendar' | 'recipes' | 'menus' | 'foods' | 'settings';
 
-const TITLES: Record<Tab, string> = { recipes: 'Recipes', foods: 'Foods', settings: 'Settings' };
+const TITLES: Record<Tab, string> = { calendar: 'Calendar', recipes: 'Recipes', menus: 'Menus', foods: 'Foods', settings: 'Settings' };
 
 export default function App() {
   const { sync, device, settings, loaded } = useStore();
-  const [tab, setTab] = useState<Tab>('recipes');
+  const [tab, setTab] = useState<Tab>('calendar');
 
   const go = (t: Tab) => {
     setTab(t);
@@ -53,23 +55,31 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <h1>{TITLES[tab]}</h1>
-        <button className="sync-pill" onClick={() => go('settings')} aria-label={`Sync status: ${pill}`}>
-          <span className={`dot ${dot}`} />
-          {pill}
-        </button>
+        <span className="top-actions">
+          <button className="sync-pill" onClick={() => go('settings')} aria-label={`Sync status: ${pill}`}>
+            <span className={`dot ${dot}`} />
+            {pill}
+          </button>
+          <button className={`icon-btn top-settings${tab === 'settings' ? ' on' : ''}`} onClick={() => go('settings')} aria-label="Settings">
+            <Icon name="settings" size={20} />
+          </button>
+        </span>
       </header>
 
       <main>
+        {tab === 'calendar' && <CalendarView />}
         {tab === 'recipes' && <RecipesView />}
+        {tab === 'menus' && <MenusView />}
         {tab === 'foods' && <FoodsView />}
         {tab === 'settings' && <SettingsView />}
       </main>
 
       <nav className="tabbar" aria-label="Main">
-        <div className="tabbar-inner" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="tabbar-inner" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <TabBtn active={tab === 'calendar'} onClick={() => go('calendar')} icon="calendar" label="Calendar" />
           <TabBtn active={tab === 'recipes'} onClick={() => go('recipes')} icon="book" label="Recipes" />
+          <TabBtn active={tab === 'menus'} onClick={() => go('menus')} icon="list" label="Menus" />
           <TabBtn active={tab === 'foods'} onClick={() => go('foods')} icon="leaf" label="Foods" />
-          <TabBtn active={tab === 'settings'} onClick={() => go('settings')} icon="settings" label="Settings" />
         </div>
       </nav>
       <ToastHost />
@@ -77,7 +87,7 @@ export default function App() {
   );
 }
 
-function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: 'book' | 'leaf' | 'settings'; label: string }) {
+function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: 'book' | 'leaf' | 'list' | 'calendar'; label: string }) {
   return (
     <button className={`tab${active ? ' active' : ''}`} onClick={onClick} aria-current={active ? 'page' : undefined}>
       <Icon name={icon} size={22} />

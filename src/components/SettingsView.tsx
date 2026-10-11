@@ -135,7 +135,7 @@ export function SettingsView() {
           );
         })}
       </div>
-      <p className="small-print">Optional, per person. Daily targets are used by the calendar, coming in the next phase.</p>
+      <p className="small-print">Optional, per person. Daily targets show against each day on the calendar.</p>
 
       <div className="section-title">Names</div>
       <div className="card set-group">
@@ -217,7 +217,7 @@ export function SettingsView() {
 
       <div className="section-title">Coming next</div>
       <div className="card pad text-2" style={{ fontSize: 14 }}>
-        Calendar, menus, the joint shopping list and the recipe browser arrive in the next phases.
+        The joint shopping list and the recipe browser arrive in the next phase.
       </div>
 
       <p className="small-print" style={{ marginTop: 22 }}>

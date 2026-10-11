@@ -103,7 +103,62 @@ export interface Settings extends Base {
   tracking: Record<Person, Tracking>;
 }
 
-export type Entry = FoodEntry | Recipe | Settings;
+export type Slot = 'breakfast' | 'lunch' | 'snacks' | 'dinner';
+export const SLOTS: Slot[] = ['breakfast', 'lunch', 'snacks', 'dinner'];
+export const SLOT_LABELS: Record<Slot, string> = { breakfast: 'Breakfast', lunch: 'Lunch', snacks: 'Snacks', dinner: 'Dinner' };
+
+/** How much of a recipe one person has: servings, or grams of the finished dish. */
+export interface Portion1 {
+  servings?: number;
+  grams?: number;
+}
+
+/** What a meal is. */
+export type MealContent =
+  /** a saved recipe, with each person's portion */
+  | { type: 'recipe'; recipeId: string; portions: Partial<Record<Person, Portion1>> }
+  /** a list of weighed items, Nuria-style; amounts are per person */
+  | { type: 'items'; ingredients: Ingredient[] }
+  /** just words: "Pizza night", "Out in town" */
+  | { type: 'note'; text: string };
+
+/** The parts of a meal that a menu stores too. */
+export interface MealBody {
+  slot: Slot;
+  who: Who;
+  content: MealContent;
+  /** e.g. "Legume Day", "Carb Swap" */
+  label?: string;
+  /** eaten from something cooked earlier: not added to the shopping list */
+  leftovers?: boolean;
+}
+
+export interface Meal extends Base, MealBody {
+  kind: 'meal';
+  /** YYYY-MM-DD */
+  date: string;
+  /** order within the slot */
+  order: number;
+  /** the menu it came from, if any */
+  menuId?: string;
+  createdBy?: Person;
+}
+
+export interface MenuDay {
+  meals: MealBody[];
+}
+
+export interface Menu extends Base {
+  kind: 'menu';
+  name: string;
+  owner: Who;
+  /** Day 1, Day 2… (not weekdays), so a menu can start on any day */
+  days: MenuDay[];
+  notes?: string;
+  createdBy?: Person;
+}
+
+export type Entry = FoodEntry | Recipe | Settings | Meal | Menu;
 
 export const SETTINGS_ID = 'settings';
 

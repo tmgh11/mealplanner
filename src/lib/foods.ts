@@ -115,7 +115,7 @@ const SYNONYMS: Record<string, string> = {
   lomo: 'pork loin', solomillo: 'pork fillet', 'cured ham': 'ham', 'yogurt': 'yogurt plain', 'greek yogurt': 'yogurt greek style plain', 'gf toast': 'bread gluten free', 'gf bread': 'bread gluten free',
   'wholemeal toast': 'bread wholemeal', toast: 'bread white', 'mango chunks': 'mango', blueberry: 'blueberries', 'brussels sprouts': 'brussels sprouts',
   rusks: 'rusks', chard: 'chard swiss', leeks: 'leeks', leek: 'leeks', spinach: 'spinach', kale: 'curly kale', beetroot: 'beetroot',
-  'pickled beetroot': 'beetroot pickled', 'pickled onion': 'onions pickled', pickles: 'gherkins', radish: 'radishes', lettuce: 'lettuce',
+  'pickled beetroot': 'beetroot pickled', 'pickled onion': 'onions pickled', pickles: 'gherkins', radish: 'radish red', radishes: 'radish red', lettuce: 'lettuce',
   'salad leaves': 'lettuce', 'mixed leaf salad': 'lettuce', 'lentils': 'lentils', 'oats': 'oats porridge', 'porridge oats': 'oats porridge',
   'white rice': 'rice white', rice: 'rice white', pasta: 'pasta white', spaghetti: 'pasta white', 'tomato sauce': 'tomato sauce',
   'canned tomato sauce': 'tomato sauce', 'chopped tomatoes': 'tomatoes canned', 'tinned tomatoes': 'tomatoes canned',
@@ -127,7 +127,7 @@ const SYNONYMS: Record<string, string> = {
   cranberries: 'cranberries dried', coffee: 'coffee infusion average', milk: 'milk semi-skimmed', butter: 'butter', flour: 'flour wheat white',
   wine: 'wine red', 'red wine': 'wine red', 'white wine': 'wine white', mushrooms: 'mushrooms white', mushroom: 'mushrooms white',
   carrots: 'carrots', carrot: 'carrots', onion: 'onions', onions: 'onions', 'red onion': 'onions', potatoes: 'potatoes old flesh only', potato: 'potatoes old flesh only',
-  apple: 'apples eating', apples: 'apples eating', pear: 'pears', orange: 'oranges', kiwi: 'kiwi fruit', banana: 'bananas', tomatoes: 'tomatoes', tomato: 'tomatoes',
+  apple: 'apples eating', apples: 'apples eating', pear: 'pears', orange: 'oranges flesh only', oranges: 'oranges flesh only', kiwi: 'kiwi fruit', banana: 'bananas', tomatoes: 'tomatoes', tomato: 'tomatoes',
   broccoli: 'broccoli green', cabbage: 'cabbage average', celery: 'celery', cucumber: 'cucumber', garlic: 'garlic', salmon: 'salmon farmed flesh only', tuna: 'tuna canned',
   chicken: 'chicken light meat', turkey: 'turkey light meat', 'turkey breast': 'turkey light meat', 'turkey slice': 'turkey light meat', beef: 'beef', pork: 'pork', lamb: 'lamb', steak: 'beef rump steak', 'lean beef': 'beef rump steak',
 };
@@ -212,7 +212,9 @@ export function searchFoods(foods: Food[], name: string, opts: { state?: 'raw' |
     // every word must match (one may be missing from a longer description)
     if (!headHits || hits < q.length - (q.length >= 3 ? 1 : 0)) continue;
     const name = it.food.name.toLowerCase();
-    let score = hits * 10 + headHits * 6 - (q.length - hits) * 8 - it.len * 0.6;
+    let score = hits * 10 + 6 + headHits - (q.length - hits) * 8 - it.len * 0.6;
+    // a dish whose name starts with other foods ("Rice and red kidney beans") is not the food itself
+    score -= it.head.filter((x) => x !== 'and' && x !== 'with' && !q.some((w) => close(x, w)) && !soft.includes(x)).length * 4;
     for (const w of soft) if (it.words.includes(w)) score += 4;
     if (it.food.source !== 'cofid') score += 3; // our own and edited foods first when equally good
     if (norm(it.food.name) === phrase) score += 8;

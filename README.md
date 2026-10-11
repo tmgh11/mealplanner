@@ -2,15 +2,17 @@
 
 Recipes, meals and shopping for Tom and Nuria, built like [Billsplit](https://github.com/tmgh11/billsplit): one small web app that installs on both phones, works offline, and keeps the two phones in sync through a free Supabase database.
 
-**Phase 1 (this version): Foundations**
+**What it does so far**
 
-- **Recipes:** ingredients in grams, marked Tom's, Nuria's or ours. The Tom / Nuria / Both switch filters the list; shared recipes show in both views.
-- **Paste ingredients:** one per line, or Nuria-style comma lists ("120g chicken, 2 garlic cloves, 7.5ml olive oil"). Each line is matched to a food and turned into grams. "4 cloves" or "1 tin" use a typical weight, and the app tells you when it has done that.
+- **Calendar:** a week at a time, with breakfast, lunch, snacks and dinner. Every meal is for Tom, Nuria or Both: the Tom / Nuria / Both switch shows one person, or both side by side with shared meals spanning the width. A meal can be a saved recipe (with each person's portion in servings or grams of the cooked dish), a list of weighed items ("120g chicken, 100g broccoli…"), or just a note ("Pizza night"). Labels like "Legume Day" and a Leftovers marker are kept. If someone tracks nutrition, each day shows their total against their target.
+- **Menus:** a run of days (Day 1, Day 2…) you can drop onto the calendar from any date for any number of days. A short menu repeats, a long one is cut. Choose who it's for, and whether to keep or replace meals already planned (with Undo). Save any stretch of the calendar as a new menu.
+- **Import a spreadsheet:** Menus → Import spreadsheet reads an .xlsx laid out like Nuria's (Breakfast / Lunch / Snacks / Dinner columns, a row per day) and makes a menu per sheet. Amounts are matched to foods; the spreadsheet's own calorie numbers are not copied.
+- **Recipes:** ingredients in grams, marked Tom's, Nuria's or ours. Paste ingredients one per line, or Nuria-style comma lists. Each line is matched to a food and turned into grams; "4 cloves" or "1 tin" use a typical weight, and the app says when it has.
 - **UK food data:** 2,886 foods from the government's CoFID 2021 dataset, with separate raw, dried and cooked entries. The app prefers raw and flags foods where raw versus cooked matters (pasta, rice, lentils, meat).
 - **Your own values win:** correct any food's values (e.g. from a packet label) or add foods the UK data lacks (gluten-free bread, oat milk). The original values are kept, and you can reset.
-- **Nutrition is opt-in per person:** calories, protein, carbs and fat per serving, for the whole dish, and per 100 g cooked if you weigh the pot. Nobody sees numbers unless they switch tracking on in Settings.
+- **Nutrition is opt-in per person:** nobody sees numbers unless they switch tracking on in Settings.
 
-Coming next: Calendar (phase 2), menus (phase 2), the joint shopping list and recipe browser (phase 3).
+Coming next: the joint shopping list and the recipe browser.
 
 ---
 
@@ -50,7 +52,7 @@ Open **https://mealplanner.tom1609.workers.dev** to install. On first open, pick
 ```bash
 npm install
 npm run dev      # also opens on your network – visit the "Network" URL from your phone
-npm test         # ingredient reading, food matching, nutrition maths
+npm test         # ingredient reading, food matching, nutrition maths, menus, spreadsheet import
 npm run build
 ```
 
@@ -64,6 +66,9 @@ src/lib/            plain TypeScript logic (unit-tested in lib.test.ts)
   foods.ts          CoFID + our edits, typical portion weights, matching text to foods
   nutrition.ts      grams from any unit, totals, per serving / per cooked weight
   ingredients.ts    line → matched, weighed ingredient, and what to flag
+  plan.ts           weeks, meal nutrition per person, menus → calendar, calendar → menu
+  xlsx.ts           reading .xlsx files in the browser
+  importSheet.ts    spreadsheet sheets → menus
   store.ts          local-first store with change queue (from Billsplit)
   persist.ts        phone storage (IndexedDB)
   sync.ts           Supabase push/pull + realtime, last-write-wins (from Billsplit)
