@@ -1,7 +1,7 @@
 // Offline support: network-first for the page, cache-first for static files.
 // Supabase and exchange-rate requests are never cached here.
-const CACHE = 'mealplanner-v2';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/apple-touch-icon.png'];
+const CACHE = 'mealplanner-v3';
+const SHELL = ['./', './index.html', './icons/icon-192.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -20,6 +20,12 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+
+  // The install settings must always be fresh, or the phone keeps installing an old version.
+  if (url.pathname.endsWith('.webmanifest')) {
+    event.respondWith(fetch(req, { cache: 'no-cache' }).catch(() => caches.match(req)));
+    return;
+  }
 
   if (req.mode === 'navigate') {
     event.respondWith(
