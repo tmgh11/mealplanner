@@ -26,20 +26,22 @@ Use a **new** project, separate from Billsplit's.
 
 > Free Supabase projects pause after about a week with no activity. If that happens, press **Resume project** in the dashboard. The app keeps working offline on each phone in the meantime and syncs once the project is back.
 
-## 2. Put it online (GitHub Pages, free)
+## 2. Put it online (Cloudflare, free)
 
-1. In the repo, go to **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Go to **Settings → Secrets and variables → Actions → Variables** and add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-3. Push to `main`. GitHub builds, tests and deploys to `https://tmgh11.github.io/mealplanner/`. You can follow it in the **Actions** tab.
+The app lives at **https://mealplanner.tom1609.workers.dev**, its own address, so it never clashes with Billsplit on the phones.
 
-The repo needs to be public for free GitHub Pages. That's fine because it holds only code. Your recipes live in Supabase behind your logins.
+- Cloudflare is connected to this GitHub repo: every push to `main` rebuilds and redeploys automatically (Cloudflare dashboard → Workers & Pages → mealplanner → Deployments).
+- Build command `npm run build`, deploy command `npx wrangler deploy`; `wrangler.jsonc` tells Cloudflare to serve the `dist` folder.
+- Build variables (set in Cloudflare): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `NODE_VERSION=22`.
+
+(The GitHub Pages copy at tmgh11.github.io/mealplanner/ is no longer used: Chrome on Android confused it with Billsplit, which shares that address.)
 
 ## 3. Install on your phones
 
 - **iPhone (Safari):** open the site, then tap **Share → Add to Home Screen**.
 - **Android (Chrome):** open the site, then tap **⋮ → Install app**.
 
-On first open, pick whose phone it is. Then sign in under **Settings → Sync between phones** with that person's email and password.
+Open **https://mealplanner.tom1609.workers.dev** to install. On first open, pick whose phone it is. Then sign in under **Settings → Sync between phones** with that person's email and password.
 
 ---
 
