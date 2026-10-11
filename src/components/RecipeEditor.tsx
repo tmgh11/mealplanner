@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Icon, Seg, Sheet, toast } from './ui';
 import { IngredientsEditor } from './IngredientsEditor';
+import { ChooseItemsSheet } from './ShoppingView';
 import { NutritionSummary } from './Nutrition';
 import { useTracking } from './RecipesView';
 import { useView } from './WhoSwitch';
 import { newId, store, useStore } from '../lib/store';
+import { lineFor, toItem } from '../lib/shopping';
+import type { ShopItem } from '../lib/types';
 import { useFoods } from '../lib/useFoods';
 import { fmtKcal, kcalPer100Cooked, perServing, recipeTotals } from '../lib/nutrition';
 import type { Recipe, Who } from '../lib/types';
@@ -51,6 +54,17 @@ export function RecipeEditor({ initial, onClose }: { initial?: Recipe; onClose: 
     store.remove(initial.id);
     toast('Recipe deleted', { label: 'Undo', run: () => store.put({ ...initial, deleted: false }) });
     onClose();
+  };
+
+  const [shopItems, setShopItems] = useState<ShopItem[] | null>(null);
+  const addToShopping = () => {
+    let t = Date.now();
+    const items: ShopItem[] = r.ingredients
+      .map((i) => lineFor(i, 1, i.foodId ? foods.get(i.foodId) : undefined))
+      .filter((l): l is NonNullable<typeof l> => Boolean(l))
+      .map((l) => toItem(l, { label: r.title.trim() || 'Untitled recipe', recipeId: r.id, forWho: r.owner }, device.me, newId(), t++));
+    if (!items.length) return toast('No ingredients to add');
+    setShopItems(items);
   };
 
   const ownerName = r.owner === 'both' ? 'our' : `${settings.names[r.owner]}’s`;
@@ -118,6 +132,11 @@ export function RecipeEditor({ initial, onClose }: { initial?: Recipe; onClose: 
       </div>
 
       <IngredientsEditor ingredients={r.ingredients} onChange={(ingredients) => set({ ingredients })} />
+      {r.ingredients.length > 0 && (
+        <button className="btn" onClick={addToShopping}>
+          <Icon name="cart" size={18} /> Add ingredients to the shopping list
+        </button>
+      )}
 
       {tracking && r.ingredients.length > 0 && (
         <NutritionSummary
@@ -144,6 +163,7 @@ export function RecipeEditor({ initial, onClose }: { initial?: Recipe; onClose: 
         <textarea id="rn" className="input" rows={2} value={r.notes ?? ''} onChange={(e) => set({ notes: e.target.value || undefined })} />
       </div>
 
+      {shopItems && <ChooseItemsSheet title="Add to shopping list" items={shopItems} note={`Everything for ${r.title.trim() || 'this recipe'} (serves ${r.servings}).`} onClose={() => setShopItems(null)} />}
     </Sheet>
   );
 }

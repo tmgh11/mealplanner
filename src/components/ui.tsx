@@ -5,7 +5,7 @@ import { isISODate } from '../lib/dates';
 type IconName =
   | 'plus' | 'camera' | 'arrows' | 'repeat' | 'chart' | 'list' | 'settings' | 'close' | 'trash' | 'check'
   | 'left' | 'right' | 'search' | 'swap' | 'upload' | 'download' | 'pause' | 'play' | 'cloud'
-  | 'book' | 'leaf' | 'edit' | 'link' | 'alert' | 'scale' | 'calendar';
+  | 'book' | 'leaf' | 'edit' | 'link' | 'alert' | 'scale' | 'calendar' | 'cart';
 
 const PATHS: Record<IconName, ReactNode> = {
   plus: <path d="M12 5v14M5 12h14" />,
@@ -51,6 +51,13 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <rect x="4" y="5" width="16" height="15" rx="2.5" />
       <path d="M4 10h16M9 3v4M15 3v4" />
+    </>
+  ),
+  cart: (
+    <>
+      <path d="M3 4h2.2l2.1 10.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2" />
+      <circle cx="9.5" cy="19.5" r="1.4" />
+      <circle cx="17" cy="19.5" r="1.4" />
     </>
   ),
   scale: <path d="M5 8h14l-2 12H7zM9 8V6a3 3 0 0 1 6 0v2M12 12v3" />,

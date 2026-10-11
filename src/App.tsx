@@ -2,14 +2,15 @@ import { useState } from 'react';
 import { CalendarView } from './components/CalendarView';
 import { MenusView } from './components/MenusView';
 import { RecipesView } from './components/RecipesView';
+import { ShoppingView } from './components/ShoppingView';
 import { FoodsView } from './components/FoodsView';
 import { SettingsView } from './components/SettingsView';
 import { Icon, ToastHost } from './components/ui';
 import { store, useStore } from './lib/store';
 
-type Tab = 'calendar' | 'recipes' | 'menus' | 'foods' | 'settings';
+type Tab = 'calendar' | 'shopping' | 'recipes' | 'menus' | 'foods' | 'settings';
 
-const TITLES: Record<Tab, string> = { calendar: 'Calendar', recipes: 'Recipes', menus: 'Menus', foods: 'Foods', settings: 'Settings' };
+const TITLES: Record<Tab, string> = { calendar: 'Calendar', shopping: 'Shopping list', recipes: 'Recipes', menus: 'Menus', foods: 'Foods', settings: 'Settings' };
 
 export default function App() {
   const { sync, device, settings, loaded } = useStore();
@@ -68,6 +69,7 @@ export default function App() {
 
       <main>
         {tab === 'calendar' && <CalendarView />}
+        {tab === 'shopping' && <ShoppingView />}
         {tab === 'recipes' && <RecipesView />}
         {tab === 'menus' && <MenusView />}
         {tab === 'foods' && <FoodsView />}
@@ -75,8 +77,9 @@ export default function App() {
       </main>
 
       <nav className="tabbar" aria-label="Main">
-        <div className="tabbar-inner" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="tabbar-inner" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
           <TabBtn active={tab === 'calendar'} onClick={() => go('calendar')} icon="calendar" label="Calendar" />
+          <TabBtn active={tab === 'shopping'} onClick={() => go('shopping')} icon="cart" label="Shopping" />
           <TabBtn active={tab === 'recipes'} onClick={() => go('recipes')} icon="book" label="Recipes" />
           <TabBtn active={tab === 'menus'} onClick={() => go('menus')} icon="list" label="Menus" />
           <TabBtn active={tab === 'foods'} onClick={() => go('foods')} icon="leaf" label="Foods" />
@@ -87,7 +90,7 @@ export default function App() {
   );
 }
 
-function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: 'book' | 'leaf' | 'list' | 'calendar'; label: string }) {
+function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: 'book' | 'leaf' | 'list' | 'calendar' | 'cart'; label: string }) {
   return (
     <button className={`tab${active ? ' active' : ''}`} onClick={onClick} aria-current={active ? 'page' : undefined}>
       <Icon name={icon} size={22} />

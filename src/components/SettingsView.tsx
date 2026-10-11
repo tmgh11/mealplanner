@@ -217,7 +217,7 @@ export function SettingsView() {
 
       <div className="section-title">Coming next</div>
       <div className="card pad text-2" style={{ fontSize: 14 }}>
-        The joint shopping list and the recipe browser arrive in the next phase.
+        The recipe browser (saving recipes from websites, and importing from Paprika) arrives in the next phase.
       </div>
 
       <p className="small-print" style={{ marginTop: 22 }}>

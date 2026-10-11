@@ -4,7 +4,7 @@
  * when possible. Conflicts resolve last-write-wins on each entry's `updatedAt`.
  */
 import { useSyncExternalStore } from 'react';
-import type { Entry, FoodEntry, Meal, Menu, Person, Recipe, Settings, Who } from './types';
+import type { Entry, FoodEntry, Meal, Menu, Person, Recipe, Settings, ShopItem, Who } from './types';
 import { SETTINGS_ID, defaultSettings } from './types';
 import { openPersistence, type Persistence } from './persist';
 
@@ -32,12 +32,13 @@ export interface Snapshot {
   /** every meal on the calendar, by date (YYYY-MM-DD) */
   mealsByDate: Map<string, Meal[]>;
   menus: Menu[];
+  shopping: ShopItem[];
   settings: Settings;
   device: DeviceSettings;
   sync: { state: SyncState; message?: string; lastSynced?: number; email?: string };
 }
 
-type Ledger = Pick<Snapshot, 'recipes' | 'foodEntries' | 'mealsByDate' | 'menus' | 'settings'>;
+type Ledger = Pick<Snapshot, 'recipes' | 'foodEntries' | 'mealsByDate' | 'menus' | 'shopping' | 'settings'>;
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -123,6 +124,7 @@ class Store {
     const foodEntries: FoodEntry[] = [];
     const mealsByDate = new Map<string, Meal[]>();
     const menus: Menu[] = [];
+    const shopping: ShopItem[] = [];
     let settings = defaultSettings();
     for (const e of this.entries.values()) {
       if (e.kind === 'settings') {
@@ -132,6 +134,7 @@ class Store {
       else if (e.kind === 'recipe') recipes.push(e);
       else if (e.kind === 'food') foodEntries.push(e);
       else if (e.kind === 'menu') menus.push(e);
+      else if (e.kind === 'shop') shopping.push(e);
       else if (e.kind === 'meal') {
         const list = mealsByDate.get(e.date);
         if (list) list.push(e);
@@ -141,7 +144,8 @@ class Store {
     for (const list of mealsByDate.values()) list.sort((a, b) => a.order - b.order || a.updatedAt - b.updatedAt);
     menus.sort((a, b) => a.name.localeCompare(b.name, 'en-GB', { numeric: true, sensitivity: 'base' }));
     recipes.sort((a, b) => a.title.localeCompare(b.title, 'en-GB', { sensitivity: 'base' }));
-    return { recipes, foodEntries, mealsByDate, menus, settings };
+    shopping.sort((a, b) => a.addedAt - b.addedAt);
+    return { recipes, foodEntries, mealsByDate, menus, shopping, settings };
   }
 
   /** Entries changed: rebuild the lists, write `ids` to the phone's storage, and update the UI. */

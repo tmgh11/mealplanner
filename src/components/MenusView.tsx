@@ -55,7 +55,7 @@ export function MenusView() {
         </div>
       ) : (
         <div className="empty">
-          <div className="big">🗓️</div>
+          <div className="empty-icon"><Icon name="calendar" size={26} /></div>
           <p style={{ margin: '0 0 4px', fontWeight: 650, color: 'var(--text)' }}>No menus{menus.length ? ' in this view' : ' yet'}</p>
           <p style={{ margin: 0 }}>A menu is a run of days you can drop onto the calendar in one go. Import Nuria’s spreadsheet, build one here, or save a planned week from the Calendar.</p>
         </div>

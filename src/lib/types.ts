@@ -158,7 +158,41 @@ export interface Menu extends Base {
   createdBy?: Person;
 }
 
-export type Entry = FoodEntry | Recipe | Settings | Meal | Menu;
+export type Aisle = 'Fruit & veg' | 'Meat & fish' | 'Dairy & eggs' | 'Bakery' | 'Cupboard' | 'Frozen' | 'Drinks' | 'Other';
+export const AISLES: Aisle[] = ['Fruit & veg', 'Meat & fish', 'Dairy & eggs', 'Bakery', 'Cupboard', 'Frozen', 'Drinks', 'Other'];
+
+/** Where a shopping item came from. */
+export interface ShopSource {
+  /** e.g. "Thu 15 Oct lunch", "Lentil stew", or empty for something typed in */
+  label: string;
+  mealId?: string;
+  recipeId?: string;
+  date?: string;
+  /** who the meal or recipe was for */
+  forWho?: Who;
+}
+
+/** One line someone put on the shopping list. Lines for the same food are shown together. */
+export interface ShopItem extends Base {
+  kind: 'shop';
+  /** what to show, e.g. "Chicken breast" */
+  name: string;
+  foodId?: string;
+  /** lines with the same key show as one (the food as bought, whatever way it's cooked) */
+  key?: string;
+  /** amount: grams for weighed things; qty + unit for counted ones ("4 cloves", "2 tins") */
+  grams?: number;
+  qty?: number;
+  unit?: string;
+  aisle: Aisle;
+  checked: boolean;
+  addedBy: Person;
+  source?: ShopSource;
+  /** for keeping lines in the order they were added */
+  addedAt: number;
+}
+
+export type Entry = FoodEntry | Recipe | Settings | Meal | Menu | ShopItem;
 
 export const SETTINGS_ID = 'settings';
 

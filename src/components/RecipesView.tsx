@@ -40,7 +40,7 @@ export function RecipesView() {
 
       {shown.length === 0 ? (
         <div className="empty">
-          <div className="big">🍲</div>
+          <div className="empty-icon"><Icon name="book" size={26} /></div>
           {recipes.length === 0 ? (
             <>
               <p style={{ margin: '0 0 4px', fontWeight: 650, color: 'var(--text)' }}>No recipes yet</p>

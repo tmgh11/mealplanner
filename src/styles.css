@@ -575,3 +575,39 @@ textarea.input { resize: vertical; line-height: 1.4; }
 .import-row { align-items: flex-start; }
 .import-row input[type='checkbox'] { width: 22px; height: 22px; margin-top: 14px; accent-color: var(--ink); flex: none; }
 .import-row .hint { display: block; margin-top: 4px; }
+.empty-icon {
+  width: 56px; height: 56px; border-radius: 18px; margin: 0 auto 12px; display: grid; place-items: center;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-2);
+}
+
+/* ---------- Shopping list ---------- */
+.shop-add { margin-bottom: 10px; }
+.shop-add .btn.small { min-height: 36px; padding: 0 12px; }
+.shop-list { padding: 2px 0; }
+.shop-row { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--border); padding-left: 8px; }
+.shop-row:last-child { border-bottom: 0; }
+.tick {
+  width: 44px; height: 44px; flex: none; display: grid; place-items: center; position: relative;
+}
+.tick::before {
+  content: ''; position: absolute; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-strong);
+}
+.shop-row.done .tick::before { background: var(--good); border-color: var(--good); }
+.shop-row.done .tick svg { position: relative; color: #fff; }
+.shop-main { flex: 1; min-width: 0; text-align: left; padding: 11px 14px 11px 2px; display: flex; flex-direction: column; gap: 2px; }
+.shop-main:active { background: var(--surface-2); }
+.shop-line { display: flex; align-items: baseline; gap: 10px; }
+.shop-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shop-amt { font-weight: 650; font-size: 15px; flex: none; }
+.shop-sub { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--muted); min-width: 0; }
+.shop-sub > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shop-row.done .shop-name, .shop-row.done .shop-amt { text-decoration: line-through; color: var(--muted); font-weight: 550; }
+.who-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--shared); flex: none; display: inline-block; }
+.who-dot.tom { background: var(--tom); }
+.who-dot.nuria { background: var(--nuria); }
+.section-title .aside.link-btn { min-height: 0; padding: 0; font-size: 13px; }
+.tab { font-size: 12px; }
+.shop-row.pick { width: 100%; text-align: left; }
+.shop-row.pick .shop-main { padding-left: 2px; }
+.shop-row.pick.done .shop-name, .shop-row.pick.done .shop-amt { text-decoration: none; color: var(--text); font-weight: 600; }
+.shop-row.pick.skipped .shop-name, .shop-row.pick.skipped .shop-amt { color: var(--muted); text-decoration: line-through; }
