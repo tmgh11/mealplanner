@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Icon, MoreMenu, Seg, toast } from './ui';
+import { HoldButton, Icon, MoreMenu, Seg, Sheet, toast } from './ui';
 import { WhoSwitch, useView } from './WhoSwitch';
 import { MealChip } from './MealChip';
 import { MealEditor } from './MealEditor';
@@ -26,7 +26,7 @@ export function CalendarView() {
   const [start, setStart] = useState(() => weekStart(t));
   const [selected, setSelected] = useState(t);
   const [editing, setEditing] = useState<Editing>(null);
-  const [sheet, setSheet] = useState<'add-menu' | 'save-menu' | null>(null);
+  const [sheet, setSheet] = useState<'add-menu' | 'save-menu' | 'clear' | null>(null);
   const [showPast, setShowPast] = useState(false);
 
   const days = daysFrom(start, 7);
@@ -117,6 +117,12 @@ export function CalendarView() {
           items={[
             { label: 'Add a menu', icon: 'list', run: () => setSheet('add-menu') },
             { label: 'Save as a menu', icon: 'download', run: () => setSheet('save-menu') },
+            {
+              label: `Clear ${view === 'both' ? '' : `${settings.names[view]}’s meals `}${mode === 'day' ? 'this day' : 'this week'}`,
+              icon: 'trash',
+              danger: true,
+              run: () => setSheet('clear'),
+            },
           ]}
         />
       </div>
@@ -206,6 +212,7 @@ export function CalendarView() {
       )}
       {sheet === 'add-menu' && <AddMenuSheet defaultStart={mode === 'day' ? (selected < t ? t : selected) : start < t ? t : start} onClose={() => setSheet(null)} />}
       {sheet === 'save-menu' && <SaveAsMenuSheet start={start} onClose={() => setSheet(null)} />}
+      {sheet === 'clear' && <ClearMealsSheet dates={mode === 'day' ? [selected] : weekDays} view={view} onClose={() => setSheet(null)} />}
     </>
   );
 }
@@ -262,5 +269,55 @@ function DayCard({
         <Icon name="plus" size={18} /> Add a meal
       </button>
     </section>
+  );
+}
+
+/**
+ * Clear the meals on a day or the days of the week on screen, for whoever's being viewed.
+ * In one person's view their own meals go, and shared meals become the other person's (they
+ * may still be eating it). In Both, everything goes. Needs a press and hold; can be undone.
+ */
+function ClearMealsSheet({ dates, view, onClose }: { dates: string[]; view: Who; onClose: () => void }) {
+  const { mealsByDate, settings } = useStore();
+  const all = dates.flatMap((d) => mealsByDate.get(d) ?? []);
+  const other: Person | null = view === 'tom' ? 'nuria' : view === 'nuria' ? 'tom' : null;
+  const remove = all.filter((m) => view === 'both' || m.who === view);
+  const handOver = other ? all.filter((m) => m.who === 'both') : [];
+  const range = dates.length === 1 ? dayLabel(dates[0]) : dates.length ? rangeLabel(dates[0], dates[dates.length - 1]) : '';
+  const whose = view === 'both' ? 'all meals' : `${settings.names[view]}’s meals`;
+  const n = remove.length + handOver.length;
+
+  const clear = () => {
+    store.put(...remove.map((m) => ({ ...m, deleted: true })), ...handOver.map((m) => ({ ...m, who: other! })));
+    toast(`Cleared ${n} meal${n === 1 ? '' : 's'}`, { label: 'Undo', run: () => store.put(...remove.map((m) => ({ ...m, deleted: false })), ...handOver) }, 10000);
+    onClose();
+  };
+
+  return (
+    <Sheet
+      title={dates.length === 1 ? 'Clear this day?' : 'Clear this week?'}
+      onClose={onClose}
+      footer={
+        n ? (
+          <HoldButton className="danger-fill" onDone={clear} holdingLabel="Keep holding to clear…">
+            Hold to clear {n} meal{n === 1 ? '' : 's'}
+          </HoldButton>
+        ) : (
+          <button className="btn" onClick={onClose}>Nothing to clear</button>
+        )
+      }
+    >
+      <p className="text-2" style={{ marginTop: 0 }}>
+        Removes {whose} on <strong>{range}</strong>
+        {remove.length ? ` (${remove.length})` : ''}.
+      </p>
+      {other && handOver.length > 0 && (
+        <div className="note">
+          {handOver.length} shared meal{handOver.length === 1 ? '' : 's'} will stay on the calendar for {settings.names[other]} only.
+        </div>
+      )}
+      {other && <p className="small-print">{settings.names[other]}’s own meals aren’t touched.</p>}
+      <p className="small-print">You can undo straight afterwards.</p>
+    </Sheet>
   );
 }
