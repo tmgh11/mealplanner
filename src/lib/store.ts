@@ -16,7 +16,7 @@ export type SyncState = 'local' | 'signed-out' | 'syncing' | 'synced' | 'offline
 
 export interface DeviceSettings {
   me: Person;
-  /** the Tom / Nuria / Both switch; starts on this phone's person */
+  /** the Tom / Nuria / Both switch; starts on this phone's person each time the app opens */
   view?: Who;
   /** the shopping list's own switch; starts on Both */
   shopView?: Who;
@@ -77,7 +77,9 @@ class Store {
   private cursor: string | null = null;
   /** resolves once the ledger has been loaded from storage */
   readonly ready: Promise<void>;
-  private device: DeviceSettings = load<DeviceSettings>(K.device, { me: 'tom' });
+  // The Tom / Nuria / Both switches only last while the app is open: each time it starts, the
+  // calendar and recipes go back to this phone's person and the shopping list back to Both.
+  private device: DeviceSettings = (({ view: _v, shopView: _s, ...rest }) => rest)(load<DeviceSettings>(K.device, { me: 'tom' }));
   private syncInfo: Snapshot['sync'] = { state: 'local' };
   private listeners = new Set<Listener>();
   private snap: Snapshot | null = null;
@@ -270,7 +272,8 @@ class Store {
 
   setDevice(patch: Partial<DeviceSettings>) {
     this.device = { ...this.device, ...patch };
-    save(K.device, this.device);
+    const { view: _v, shopView: _s, ...lasting } = this.device;
+    save(K.device, lasting);
     this.notify();
   }
   getDevice() {

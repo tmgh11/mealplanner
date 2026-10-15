@@ -92,6 +92,8 @@ export function Icon({ name, size = 22, stroke = 2 }: { name: IconName; size?: n
   );
 }
 
+let openSheets = 0;
+
 export function Sheet({
   title,
   onClose,
@@ -123,7 +125,10 @@ export function Sheet({
   requestClose.current = () => (dirty ? setConfirming(true) : onClose());
 
   useEffect(() => {
-    const prev = document.body.style.overflow;
+    // the page behind stops scrolling while any sheet is open. Counted, not remembered: sheets
+    // can open on top of each other and close in any order, and the page must scroll again
+    // once the last one has gone.
+    openSheets++;
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && requestClose.current();
     window.addEventListener('keydown', onKey);
@@ -151,7 +156,8 @@ export function Sheet({
     vv?.addEventListener('resize', fit);
     vv?.addEventListener('scroll', fit);
     return () => {
-      document.body.style.overflow = prev;
+      openSheets = Math.max(0, openSheets - 1);
+      if (!openSheets) document.body.style.overflow = '';
       window.removeEventListener('keydown', onKey);
       vv?.removeEventListener('resize', fit);
       vv?.removeEventListener('scroll', fit);
