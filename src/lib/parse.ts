@@ -58,13 +58,13 @@ function readNumber(s: string): number | undefined {
   if (mixed) return Number(mixed[1]) + Number(mixed[2]) / Number(mixed[3]);
   const frac = s.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
   if (frac) return Number(frac[2]) ? Number(frac[1]) / Number(frac[2]) : undefined;
-  const range = s.match(/^(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)$/);
+  const range = s.match(/^(\d+(?:\.\d+)?)\s*(?:[-–]|to)\s*(\d+(?:\.\d+)?)$/);
   if (range) return (Number(range[1]) + Number(range[2])) / 2;
   const n = Number(s);
   return Number.isFinite(n) ? n : undefined;
 }
 
-const NUM = String.raw`\d+(?:[.,]\d+)?(?:\s+\d+\/\d+|\/\d+(?:\.\d+)?|\s*[-–]\s*\d+(?:[.,]\d+)?)?`;
+const NUM = String.raw`\d+(?:[.,]\d+)?(?:\s+\d+\/\d+|\/\d+(?:\.\d+)?|\s*(?:[-–]|to)\s*\d+(?:[.,]\d+)?)?`;
 
 /** Read one ingredient. */
 export function parseLine(input: string): ParsedLine {
@@ -107,6 +107,11 @@ export function parseLine(input: string): ParsedLine {
       }
     }
   }
+
+  // "6 x sea bass fillets", "2 × 400g tins": the x just means "times"
+  if (out.qty != null) s = s.replace(/^[x×]\s*(?=\S)/i, '');
+  // "1 heaped tbsp", "2 level tsp"
+  if (out.qty != null) s = s.replace(/^(heaped|level|rounded|scant|generous)\s+/i, '');
 
   // unit, attached ("120g") or as the next word ("2 tbsp", "4 cloves")
   const u = s.match(/^([a-zA-Z]+)\.?(?=[\s(]|$)\s*/);

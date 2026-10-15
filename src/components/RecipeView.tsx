@@ -64,7 +64,6 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
             label="Recipe actions"
             items={[
               { label: 'Edit recipe', icon: 'edit', run: () => setEditing(true) },
-              ...(r.ingredients.length ? [{ label: 'Add to shopping list', icon: 'cart' as const, run: addToShopping }] : []),
               { label: 'Delete recipe', icon: 'trash', danger: true, run: remove },
             ]}
           />
@@ -94,6 +93,12 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
           </div>
         )}
 
+        {r.ingredients.length > 0 && (
+          <button className="btn primary shop-btn" onClick={addToShopping}>
+            <Icon name="cart" size={18} /> Add to the shopping list
+          </button>
+        )}
+
         <div className="section-title">Ingredients</div>
         {r.ingredients.length ? (
           <div className="card read-list">
@@ -107,11 +112,6 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
           </div>
         ) : (
           <p className="small-print">No ingredients yet. Add them with ⋯ → Edit recipe.</p>
-        )}
-        {r.ingredients.length > 0 && (
-          <button className="btn" style={{ marginTop: 10 }} onClick={addToShopping}>
-            <Icon name="cart" size={18} /> Add to the shopping list
-          </button>
         )}
 
         {tracking && r.ingredients.length > 0 && <NutritionSummary totals={totals} servings={r.servings} per100Cooked={kcalPer100Cooked(r, totals)} />}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aisleOf, checkedGroups, fmtAmount, groupShopping, lineFor, linesForMeal, planFromCalendar, recipeFactor, toItem } from './shopping';
+import { aisleOf, checkedGroups, fmtAmount, groupShopping, lineFor, linesForMeal, planFromCalendar, recipeFactor, shopName, toItem } from './shopping';
 import { buildFoods, type CofidRow } from './foods';
 import { resolveLine } from './ingredients';
 import type { Meal, Recipe, ShopItem } from './types';
@@ -116,5 +116,36 @@ describe('the list as shown', () => {
     const chicken = shown[1].groups[0];
     expect([chicken.name, chicken.amount, chicken.items.length, chicken.addedBy]).toEqual(['Chicken', '270 g', 2, ['nuria', 'tom']]);
     expect(checkedGroups(list).map((g) => g.name)).toEqual(['kitchen roll']);
+  });
+});
+
+describe('shopping names drop the preparation', () => {
+  it.each([
+    ['6 x sea bass fillets', 'Sea bass'],
+    ['3 fat, fresh red chillies, deseeded and thinly shredded', 'Red chillies'],
+    ['4 garlic cloves thinly sliced', 'Garlic'],
+    ['1 red onion finely chopped', 'Red onion'],
+    ['small bunch coriander roughly chopped', 'Coriander'],
+    ['200g chicken breast, diced', 'Chicken breast'],
+    ['2 large ripe avocados, halved and stoned', 'Avocados'],
+    ['1 lemon, zested and juiced', 'Lemon'],
+  ])('%s → %s', (text, want) => {
+    expect(shopName(text)).toBe(want);
+  });
+});
+
+describe('shopping names keep product names', () => {
+  it.each([
+    ['1 tin chopped tomatoes', 'Chopped tomatoes'],
+    ['1 tsp ground cumin', 'Ground cumin'],
+    ['Freshly ground black pepper', 'Ground black pepper'],
+    ['finely chopped onion to serve', 'Onion'],
+    ['1 heaped tbsp light brown soft sugar', 'Light brown soft sugar'],
+    ['1 to 2 tablespoons lemon juice', 'Lemon juice'],
+    ['2 skinless boneless chicken breasts, cut into strips', 'Skinless boneless chicken breasts'],
+    ['1kg free-range chicken thighs', 'Free-range chicken thighs'],
+    ['1 unwaxed lemon, zested', 'Unwaxed lemon'],
+  ])('%s → %s', (text, want) => {
+    expect(shopName(text)).toBe(want);
   });
 });

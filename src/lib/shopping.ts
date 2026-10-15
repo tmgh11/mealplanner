@@ -60,10 +60,23 @@ const COOKING = /\b(raw|boiled|poached|steamed|grilled|roasted|roast|sauteed|sau
 /** A food as bought: the same whatever way it's cooked ("Eggs, boiled" and "Eggs, poached" are both eggs). */
 export const shopKey = (food: Food) => food.name.toLowerCase().replace(COOKING, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
 
-/** "Chicken breast" from "200g chicken breast, diced"; "Egg" from "Poached egg over steamed asparagus". */
+/** How a recipe says to prepare something: matters for cooking, not for shopping. */
+const PREP = /\b(finely|thinly|roughly|coarsely|very|freshly|lightly|sliced|chopped|diced|minced|crushed|grated|peeled|deseeded|seeded|de-seeded|halved|quartered|shredded|torn|julienned|trimmed|rinsed|drained|beaten|softened|melted|cubed|zested|juiced|cut|pitted|stoned|cored|bashed|bruised|squeezed|toasted|lengthways|widthways|into|to serve|to garnish|for|plus|optional|at room temperature|separated)\b/i;
+/** Words that describe the one to pick, not what it is. */
+const DESCRIBING = /^(fat|large|small|medium|big|plump|ripe|good|quality|good-quality|heaped|level|generous|whole|fresh|thick|thin|optional|freshly|finely|thinly|roughly|coarsely|lightly|very|chopped(?!\s+tomato)|sliced|diced|crushed(?!\s+(tomato|chill))|grated|cracked|peeled|shredded|torn)\s+/i;
+
+/** "Chicken breast" from "200g chicken breast, diced"; "Garlic" from "4 garlic cloves thinly sliced"; "Egg" from "Poached egg over steamed asparagus". */
 export function shopName(text: string, food?: Food): string {
   let name = parseLine(text).name.replace(/^side(s)?\s*(:|of)\s*/i, '').trim();
   name = name.split(/\s+(?:with|over|on|served)\s+/i)[0];
+  name = name.replace(/^(to serve|for serving|to garnish|optional|garnish)\s*:?\s*/i, '');
+  // "Finely chopped onion", "Freshly ground black pepper": describing words in front first
+  for (let i = 0; i < 4; i++) name = name.replace(DESCRIBING, '');
+  // drop the preparation: cut at the first prep word once there's a food word before it
+  const prep = name.search(PREP);
+  if (prep > 0) name = name.slice(0, prep);
+  name = name.replace(/\s+(and|or|&)\s*$/i, '').replace(/[\s,;-]+$/, '');
+  for (let i = 0; i < 4; i++) name = name.replace(DESCRIBING, '');
   for (let i = 0; i < 3; i++) name = name.replace(/^(boiled|poached|steamed|grilled|roasted|roast|sauteed|sautéed|fried|baked|fresh)\s+/i, '');
   // if the words don't mention the food at all ("Omelette" matched to mushrooms), name it after the food
   const foodWords = (food?.name.toLowerCase().replace(COOKING, ' ').match(/[a-z]{3,}/g) ?? [])
