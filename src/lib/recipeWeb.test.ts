@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findUrl, ldJsonBlocks, webRecipeFrom, webToRecipe } from './recipeWeb';
+import { findRecipeNode, findUrl, ldJsonBlocks, webRecipeFrom, webToRecipe } from './recipeWeb';
 import { buildFoods, type CofidRow } from './foods';
 import cofid from '../../public/data/cofid.json';
 
@@ -43,5 +43,18 @@ describe('reading recipes from web pages', () => {
   it('finds a link in shared text', () => {
     expect(findUrl('Lentil soup | BBC Good Food https://www.bbcgoodfood.com/recipes/x')).toBe('https://www.bbcgoodfood.com/recipes/x');
     expect(findUrl('no link')).toBeUndefined();
+  });
+});
+
+describe('finding the recipe in awkward pages', () => {
+  it('finds a recipe stored as a JSON string deep in page data, ignoring related recipes without ingredients', () => {
+    const page = { props: { pageProps: { related: [{ '@type': 'Recipe', name: 'other' }], schema: JSON.stringify({ '@type': 'Recipe', name: 'Next soup', recipeIngredient: ['1 tbsp olive oil'] }) } } };
+    expect(findRecipeNode([page])?.name).toBe('Next soup');
+  });
+  it('accepts full schema.org type URLs', () => {
+    expect(findRecipeNode([{ '@type': 'http://schema.org/Recipe', name: 'X', recipeIngredient: ['1 egg'] }])?.name).toBe('X');
+  });
+  it('falls back to a recipe without ingredients if that is all there is', () => {
+    expect(findRecipeNode([{ '@type': 'Recipe', name: 'Bare' }])?.name).toBe('Bare');
   });
 });

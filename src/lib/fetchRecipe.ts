@@ -34,9 +34,12 @@ export async function fetchWebRecipe(url: string): Promise<WebRecipe> {
     if (res?.status === 401) throw new FetchProblem('Sign in again under Settings to read recipes from websites.', 'signed-out');
     throw new FetchProblem(body.error ?? error.message ?? 'Couldn’t read that page.', 'site');
   }
-  const d = data as { url: string; blocks: unknown[]; title?: string; image?: string };
+  const d = data as { url: string; blocks: unknown[]; title?: string; image?: string; info?: { bytes: number; scripts: number } };
   const recipe = webRecipeFrom(d.blocks ?? [], d.url ?? url);
-  if (!recipe) throw new FetchProblem(`No recipe found on that page${d.title ? ` (“${d.title}”)` : ''}.`, 'no-recipe');
+  if (!recipe) {
+    const what = d.info ? ` [${Math.round(d.info.bytes / 1000)} KB, ${d.info.scripts} data blocks]` : '';
+    throw new FetchProblem(`No recipe found on that page${d.title ? ` (“${d.title}”)` : ''}.${what}`, 'no-recipe');
+  }
   if (!recipe.image && d.image) recipe.image = d.image;
   return recipe;
 }

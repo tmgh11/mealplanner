@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       redirect: 'follow',
       signal: AbortSignal.timeout(15000),
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; MealPlanner/1.0; personal recipe saver)',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
         Accept: 'text/html,application/xhtml+xml',
         'Accept-Language': 'en-GB,en;q=0.9',
       },
@@ -74,14 +74,21 @@ Deno.serve(async (req) => {
   }
   const html = new TextDecoder().decode(bytes);
 
+  // Recipe data: the schema.org JSON-LD blocks first, then any other JSON the page carries
+  // (some sites, built with Next.js and the like, keep it inside their page data instead).
   const blocks: unknown[] = [];
-  for (const m of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
-    try {
-      blocks.push(JSON.parse(m[1].trim()));
-    } catch {
-      // skip bad blocks
-    }
+  const others: unknown[] = [];
+  for (const m of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    const attrs = m[1];
+    const isLd = /type=["']?application\/ld\+json/i.test(attrs);
+    const isJson = isLd || /type=["']?application\/json/i.test(attrs) || /id=["']__NEXT_DATA__/i.test(attrs);
+    if (!isJson && !/"@type"\s*:\s*"Recipe"|\\"@type\\"\s*:\s*\\"Recipe\\"/.test(m[2])) continue;
+    const parsed = isJson ? parseJson(m[2]) : objectsAround(m[2]);
+    if (parsed === undefined) continue;
+    (isLd ? blocks : others).push(parsed);
   }
+  blocks.push(...others);
+
   const meta = (prop: string) =>
     html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1] ??
     html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`, 'i'))?.[1];
@@ -89,7 +96,49 @@ Deno.serve(async (req) => {
   return json({
     url: res.url || url.href,
     blocks,
+    // for working out why a page didn't give a recipe
+    info: { status: res.status, bytes: html.length, scripts: blocks.length },
     title: meta('og:title') ?? html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim(),
     image: meta('og:image'),
   });
 });
+
+/** JSON.parse that forgives what sites get wrong: comments, CDATA, raw newlines and tabs in strings. */
+function parseJson(raw: string): unknown {
+  const t = raw.trim().replace(/^<!--|-->$/g, '').replace(/^\/\*<!\[CDATA\[\*\/|\/\*\]\]>\*\/$/g, '').trim();
+  try {
+    return JSON.parse(t);
+  } catch {
+    try {
+      return JSON.parse(t.replace(/[\u0000-\u001f]+/g, ' '));
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+/** For JSON written into a script (window.x = {...}): pull out the object around "@type":"Recipe". */
+function objectsAround(src: string): unknown {
+  const s = src.replace(/\\"/g, '"');
+  const at = s.search(/"@type"\s*:\s*"Recipe"/);
+  if (at < 0) return undefined;
+  // walk back to each "{" before it and try to read a whole object from there
+  for (let start = s.lastIndexOf('{', at), tries = 0; start >= 0 && tries < 40; start = s.lastIndexOf('{', start - 1), tries++) {
+    let depth = 0;
+    let inStr = false;
+    for (let i = start; i < s.length; i++) {
+      const c = s[i];
+      if (inStr) {
+        if (c === '\\') i++;
+        else if (c === '"') inStr = false;
+      } else if (c === '"') inStr = true;
+      else if (c === '{') depth++;
+      else if (c === '}' && --depth === 0) {
+        const obj = parseJson(s.slice(start, i + 1));
+        if (obj && typeof obj === 'object' && JSON.stringify(obj).includes('recipeIngredient')) return obj;
+        break;
+      }
+    }
+  }
+  return undefined;
+}

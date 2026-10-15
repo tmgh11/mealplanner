@@ -35,25 +35,39 @@ const decode = (s: string) =>
 
 type Node = Record<string, unknown>;
 const isRecipe = (n: unknown): n is Node => {
-  if (!n || typeof n !== 'object') return false;
+  if (!n || typeof n !== 'object' || Array.isArray(n)) return false;
   const t = (n as Node)['@type'];
-  return t === 'Recipe' || (Array.isArray(t) && t.includes('Recipe'));
+  const is = (x: unknown) => typeof x === 'string' && /(^|[/:])Recipe$/i.test(x);
+  return is(t) || (Array.isArray(t) && t.some(is));
 };
 
-/** Find the Recipe in JSON-LD, which may be a list, sit in an @graph, or be nested. */
+/**
+ * Find the Recipe in JSON-LD, which may be a list, sit in an @graph, or be nested deep inside a
+ * site's own page data (sometimes as a JSON string). Searches breadth-first, so the page's main
+ * recipe wins over "more recipes like this" further down.
+ */
 export function findRecipeNode(blocks: unknown[]): Node | null {
   const queue: unknown[] = [...blocks];
-  while (queue.length) {
-    const n = queue.shift();
-    if (isRecipe(n)) return n;
-    if (Array.isArray(n)) queue.push(...n);
-    else if (n && typeof n === 'object') {
-      const o = n as Node;
-      if (o['@graph']) queue.push(o['@graph']);
-      if (o.mainEntity) queue.push(o.mainEntity);
+  let seen = 0;
+  let first: Node | null = null;
+  while (queue.length && seen++ < 50000) {
+    let n = queue.shift();
+    if (typeof n === 'string') {
+      if (n.length < 50 || !n.includes('Recipe') || !/^\s*[[{]/.test(n)) continue;
+      try {
+        n = JSON.parse(n);
+      } catch {
+        continue;
+      }
     }
+    if (isRecipe(n)) {
+      if ((n as Node).recipeIngredient || (n as Node).ingredients) return n as Node;
+      first ??= n as Node;
+    }
+    if (Array.isArray(n)) queue.push(...n);
+    else if (n && typeof n === 'object') queue.push(...Object.values(n as Node));
   }
-  return null;
+  return first;
 }
 
 const text = (v: unknown): string => (typeof v === 'string' ? decode(v) : typeof v === 'number' ? String(v) : '');
