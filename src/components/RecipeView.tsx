@@ -27,6 +27,15 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
   const r = recipes.find((x) => x.id === id);
   const [editing, setEditing] = useState(false);
   const [shopItems, setShopItems] = useState<ShopItem[] | null>(null);
+  // steps crossed off while cooking: only for as long as the recipe is open
+  const [done, setDone] = useState<Set<number>>(() => new Set());
+  const toggleStep = (i: number) =>
+    setDone((d) => {
+      const next = new Set(d);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
   const totals = useMemo(() => recipeTotals(r?.ingredients ?? [], foods.get), [r?.ingredients, foods]);
 
   // deleted (here or from the editor): nothing left to show
@@ -85,13 +94,6 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
             </a>
           )}
         </div>
-        {r.tags.length > 0 && (
-          <div className="tag-row">
-            {r.tags.map((t) => (
-              <span key={t} className="tag">{t}</span>
-            ))}
-          </div>
-        )}
 
         {r.ingredients.length > 0 && (
           <button className="btn primary shop-btn" onClick={addToShopping}>
@@ -118,16 +120,23 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
 
         {steps.length > 0 && (
           <>
-            <div className="section-title">Method</div>
+            <div className="section-title">
+              Method
+              {done.size > 0 ? (
+                <button className="link-btn small aside" onClick={() => setDone(new Set())}>Untick all</button>
+              ) : (
+                <span className="aside">Tap a step to cross it off</span>
+              )}
+            </div>
             <div className="read-method">
               {steps.map((s, i) =>
                 s.heading ? (
                   <div key={i} className="ing-heading">{s.text}</div>
                 ) : (
-                  <div key={i} className="step">
-                    <span className="step-n">{s.n}</span>
+                  <button key={i} type="button" className={`step${done.has(i) ? ' done' : ''}`} onClick={() => toggleStep(i)} aria-pressed={done.has(i)}>
+                    <span className="step-n">{done.has(i) ? <Icon name="check" size={14} stroke={3} /> : s.n}</span>
                     <p>{s.text}</p>
-                  </div>
+                  </button>
                 ),
               )}
             </div>
@@ -139,6 +148,14 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
             <div className="section-title">Notes</div>
             <p className="read-notes">{r.notes}</p>
           </>
+        )}
+
+        {r.tags.length > 0 && (
+          <div className="tag-row bottom">
+            {r.tags.map((t) => (
+              <span key={t} className="tag">{t}</span>
+            ))}
+          </div>
         )}
       </Sheet>
 
