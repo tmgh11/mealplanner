@@ -710,3 +710,48 @@ button.step:active { background: var(--surface-2); }
 .step.done { opacity: 0.4; }
 .step.done .step-n { background: var(--text); color: var(--bg); }
 .tag-row.bottom { margin-top: 20px; }
+.past-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin: 4px 0 8px;
+  border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); background: none; color: var(--text-2);
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.day.past { opacity: 0.6; }
+
+/* ---------- Calendar: day and week ---------- */
+.cal-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.cal-bar .seg { flex: 1; }
+.cal-bar .more .icon-btn { margin: 0; }
+.date-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+.date-pill {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 6px; border: 0; border-radius: var(--radius-sm);
+  background: none; font: inherit; color: var(--text); cursor: pointer; min-height: 60px;
+}
+.date-pill .dp-day { font-size: 12px; font-weight: 650; color: var(--muted); }
+.date-pill .dp-num { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.date-pill .dp-dot { width: 5px; height: 5px; border-radius: 50%; }
+.date-pill .dp-dot.has { background: var(--muted); }
+.date-pill.past { opacity: 0.45; }
+.date-pill.today .dp-num { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
+.date-pill.on { background: var(--ink); color: var(--on-ink); opacity: 1; }
+.date-pill.on .dp-day { color: var(--on-ink); opacity: 0.8; }
+.date-pill.on .dp-dot.has { background: var(--on-ink); }
+.day-empty { margin: 6px 2px 10px; color: var(--muted); font-size: 14.5px; }
+.btn.add-meal { margin-top: 10px; min-height: 46px; }
+.week-day { padding-bottom: 8px; }
+.week-day .day-head { padding-bottom: 4px; }
+.week-day .day-head .slot-add { margin-left: auto; }
+.week-day .day-totals { margin-left: auto; }
+.week-day .day-totals + .slot-add { margin-left: 0; }
+.day-link { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.week-slot { display: flex; gap: 10px; padding: 6px 2px; border-top: 1px solid var(--border); align-items: baseline; }
+.week-slot-name { flex: 0 0 86px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.week-meals { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.week-meal {
+  display: flex; align-items: baseline; gap: 6px; text-align: left; background: none; border: 0; padding: 0 0 0 10px; font: inherit;
+  font-size: 14.5px; font-weight: 550; color: var(--text); cursor: pointer; position: relative; line-height: 1.35;
+}
+.week-meal::before { content: ''; position: absolute; left: 0; top: 0.45em; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.week-meal.tom::before { background: var(--tom); }
+.week-meal.nuria::before { background: var(--nuria); }
+.week-meal .meal-label { flex: none; }
+.week-empty { display: block; width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--border); padding: 8px 2px 4px; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; }

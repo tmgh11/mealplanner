@@ -8,13 +8,13 @@ export function useView(): Who {
   return device.view ?? device.me;
 }
 
-export function WhoSwitch() {
+export function WhoSwitch({ value, onChange }: { value?: Who; onChange?: (v: Who) => void } = {}) {
   const { settings } = useStore();
   const view = useView();
   return (
     <Seg<Who>
-      value={view}
-      onChange={(v) => store.setDevice({ view: v })}
+      value={value ?? view}
+      onChange={onChange ?? ((v) => store.setDevice({ view: v }))}
       options={[
         { value: 'tom', label: settings.names.tom, className: 'tom' },
         { value: 'nuria', label: settings.names.nuria, className: 'nuria' },

@@ -149,7 +149,11 @@ export function SaveAsMenuSheet({ start: initialStart, onClose }: { start: strin
   const [forWho, setForWho] = useState<Who>(view);
   const [name, setName] = useState(`Week of ${fromISO(initialStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`);
   const n = Math.max(1, Math.min(62, Math.round(Number(days) || 0)));
-  const menuDays = isISODate(start) ? daysToMenu(mealsByDate, start, n, forWho) : [];
+  const allDays = isISODate(start) ? daysToMenu(mealsByDate, start, n, forWho) : [];
+  // empty days at the end aren't part of the menu: a 3-day plan saves as a 3-day menu
+  let last = allDays.length;
+  while (last > 0 && !allDays[last - 1].meals.length) last--;
+  const menuDays = allDays.slice(0, last);
   const count = countMeals(menuDays);
 
   const save = () => {
@@ -166,7 +170,7 @@ export function SaveAsMenuSheet({ start: initialStart, onClose }: { start: strin
       footer={
         <button className="btn primary save" disabled={!count} onClick={save}>
           <span>{count ? `Save ${count} meals as a menu` : 'No meals in those days'}</span>
-          {isISODate(start) && <span className="save-sub">{rangeLabel(start, addDays(start, n - 1))}</span>}
+          {isISODate(start) && menuDays.length > 0 && <span className="save-sub">from {rangeLabel(start, addDays(start, menuDays.length - 1))}</span>}
         </button>
       }
     >
@@ -174,13 +178,14 @@ export function SaveAsMenuSheet({ start: initialStart, onClose }: { start: strin
         <label htmlFor="sn">Menu name</label>
         <input id="sn" className="input" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
+      <p className="text-2" style={{ margin: '0 0 10px', fontSize: 14 }}>Which days of the calendar to copy into the menu:</p>
       <div className="inline">
         <div className="field">
-          <label htmlFor="ss">From</label>
+          <label htmlFor="ss">Copy from</label>
           <input id="ss" type="date" className="input" value={start} onChange={(e) => setStart(e.target.value)} />
         </div>
         <div className="field" style={{ flex: '0 0 110px' }}>
-          <label htmlFor="sd">Days</label>
+          <label htmlFor="sd">For how many days</label>
           <input id="sd" className="input" inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} />
         </div>
       </div>
@@ -197,7 +202,9 @@ export function SaveAsMenuSheet({ start: initialStart, onClose }: { start: strin
         />
       </div>
       <p className="small-print">
-        <Icon name="list" size={14} /> Days are saved as Day 1, Day 2…, so the menu can start on any day later.
+        <Icon name="list" size={14} /> {menuDays.length
+          ? `Saved as a ${menuDays.length}-day menu (Day 1, Day 2…), not tied to these dates, so you can put it on the calendar from any day later.`
+          : 'Days are saved as Day 1, Day 2…, so the menu can start on any day later.'}
       </p>
     </Sheet>
   );

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Icon, toast } from './ui';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Icon, MoreMenu, Seg, toast } from './ui';
 import { WhoSwitch, useView } from './WhoSwitch';
 import { MealChip } from './MealChip';
 import { MealEditor } from './MealEditor';
@@ -7,10 +7,12 @@ import { useTracking } from './RecipesView';
 import { AddMenuSheet, SaveAsMenuSheet } from './MenuSheets';
 import { newId, store, useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
-import { addDays, today } from '../lib/dates';
-import { dayLabel, dayTotal, daysFrom, mealNutrition, peopleOf, rangeLabel, weekStart } from '../lib/plan';
+import { addDays, fromISO, today } from '../lib/dates';
+import { dayLabel, dayTotal, daysFrom, mealTitle, peopleOf, rangeLabel, weekStart } from '../lib/plan';
 import { fmtKcal } from '../lib/nutrition';
-import { SLOT_LABELS, SLOTS, visibleIn, type Meal, type MealBody, type Person, type Slot, type Who } from '../lib/types';
+import { SLOT_LABELS, SLOTS, visibleIn, type Meal, type MealBody, type Person, type Recipe, type Slot, type Who } from '../lib/types';
+
+const weekday = (d: string) => fromISO(d).toLocaleDateString('en-GB', { weekday: 'short' }).replace(/[.,]/g, '');
 
 type Editing = { meal?: Meal; body: MealBody; date: string } | null;
 
@@ -19,19 +21,25 @@ export function CalendarView() {
   const view = useView();
   const foods = useFoods();
   const tracking = useTracking();
-  const [start, setStart] = useState(() => weekStart(today()));
+  const t = today();
+  const mode = device.calMode ?? 'day';
+  const [start, setStart] = useState(() => weekStart(t));
+  const [selected, setSelected] = useState(t);
   const [editing, setEditing] = useState<Editing>(null);
   const [sheet, setSheet] = useState<'add-menu' | 'save-menu' | null>(null);
+  const [showPast, setShowPast] = useState(false);
 
   const days = daysFrom(start, 7);
-  const t = today();
   const lookup = useMemo(() => ({ recipe: (id: string) => recipes.find((r) => r.id === id), food: foods.get }), [recipes, foods]);
   const shownPeople: Person[] = peopleOf(view);
   const totalsFor = tracking ? shownPeople.filter((p) => settings.tracking[p].on) : [];
+  const mealsOn = (date: string) => (mealsByDate.get(date) ?? []).filter((m) => visibleIn(m.who, view));
 
-  const add = (date: string, slot: Slot) => {
-    const who: Who = view;
-    setEditing({ date, body: { slot, who, content: { type: 'note', text: '' } } });
+  /** New meal: in the slot asked for, or the first one not yet planned that day. */
+  const add = (date: string, slot?: Slot) => {
+    const taken = mealsOn(date).map((m) => m.slot);
+    const s = slot ?? SLOTS.find((x) => !taken.includes(x)) ?? 'dinner';
+    setEditing({ date, body: { slot: s, who: view, content: { type: 'note', text: '' } } });
   };
 
   const saveMeal = (body: MealBody, date?: string) => {
@@ -52,98 +60,135 @@ export function CalendarView() {
   };
 
   const isThisWeek = start === weekStart(t);
+  const goWeek = (n: number) => {
+    setStart(addDays(start, 7 * n));
+    setSelected(addDays(selected, 7 * n));
+    setShowPast(false);
+  };
+  const backToToday = () => {
+    setStart(weekStart(t));
+    setSelected(t);
+  };
+  // the week view, this week: days already gone fold away behind one line
+  const past = isThisWeek ? days.filter((d) => d < t) : [];
+  const weekDays = showPast ? days : days.filter((d) => !past.includes(d));
+
+  const totals = (date: string) =>
+    totalsFor.length > 0 && (
+      <span className="day-totals">
+        {totalsFor.map((p) => {
+          const tot = dayTotal(mealsByDate.get(date) ?? [], p, lookup);
+          if (!tot.meals) return null;
+          const target = settings.tracking[p].kcal;
+          return (
+            <span key={p} className={`day-total ${p}`}>
+              {totalsFor.length > 1 ? `${settings.names[p][0]} ` : ''}
+              {fmtKcal(tot.sum.kcal)}
+              {target ? ` / ${target}` : ''} kcal{tot.uncounted ? '*' : ''}
+            </span>
+          );
+        })}
+      </span>
+    );
 
   return (
     <>
       <WhoSwitch />
       <div className="week-nav">
-        <button className="icon-btn" onClick={() => setStart(addDays(start, -7))} aria-label="Previous week">
+        <button className="icon-btn" onClick={() => goWeek(-1)} aria-label="Previous week">
           <Icon name="left" size={18} />
         </button>
         <div className="week-title">
           <strong>{rangeLabel(start, addDays(start, 6))}</strong>
-          {isThisWeek ? <span className="muted">This week</span> : <button className="link-btn small" onClick={() => setStart(weekStart(t))}>Back to this week</button>}
+          {isThisWeek && (mode === 'week' || selected === t) ? <span className="muted">This week</span> : <button className="link-btn small" onClick={backToToday}>Back to today</button>}
         </div>
-        <button className="icon-btn" onClick={() => setStart(addDays(start, 7))} aria-label="Next week">
+        <button className="icon-btn" onClick={() => goWeek(1)} aria-label="Next week">
           <Icon name="right" size={18} />
         </button>
       </div>
-      <div className="btn-row" style={{ marginBottom: 6 }}>
-        <button className="btn small grow-btn" onClick={() => setSheet('add-menu')}>
-          <Icon name="list" size={18} /> Add a menu
-        </button>
-        <button className="btn small grow-btn" onClick={() => setSheet('save-menu')}>
-          <Icon name="download" size={18} /> Save as menu
-        </button>
+      <div className="cal-bar">
+        <Seg<'day' | 'week'> value={mode} onChange={(m) => store.setDevice({ calMode: m })} options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }]} />
+        <MoreMenu
+          label="Calendar options"
+          items={[
+            { label: 'Add a menu', icon: 'list', run: () => setSheet('add-menu') },
+            { label: 'Save as a menu', icon: 'download', run: () => setSheet('save-menu') },
+          ]}
+        />
       </div>
 
-      {days.map((date) => {
-        const all = mealsByDate.get(date) ?? [];
-        const meals = all.filter((m) => visibleIn(m.who, view));
-        const empty = SLOTS.filter((s) => !meals.some((m) => m.slot === s));
-        return (
-          <section key={date} className={`card day${date === t ? ' today' : ''}`}>
-            <header className="day-head">
-              <strong>{dayLabel(date)}</strong>
-              {date === t && <span className="today-badge">Today</span>}
-              {totalsFor.length > 0 && (
-                <span className="day-totals">
-                  {totalsFor.map((p) => {
-                    const tot = dayTotal(all, p, lookup);
-                    if (!tot.meals) return null;
-                    const target = settings.tracking[p].kcal;
-                    return (
-                      <span key={p} className={`day-total ${p}`}>
-                        {totalsFor.length > 1 ? `${settings.names[p][0]} ` : ''}
-                        {fmtKcal(tot.sum.kcal)}
-                        {target ? ` / ${target}` : ''} kcal{tot.uncounted ? '*' : ''}
-                      </span>
-                    );
-                  })}
-                </span>
-              )}
-            </header>
-            {SLOTS.filter((s) => !empty.includes(s)).map((slot) => {
-              const inSlot = meals.filter((m) => m.slot === slot);
+      {mode === 'day' ? (
+        <>
+          <div className="date-strip" role="tablist">
+            {days.map((d) => {
+              const n = mealsOn(d).length;
               return (
-                <div key={slot} className="slot">
-                  <div className="slot-head">
-                    <span>{SLOT_LABELS[slot]}</span>
-                    <button className="slot-add" onClick={() => add(date, slot)} aria-label={`Add to ${SLOT_LABELS[slot]}`}>
-                      <Icon name="plus" size={16} />
-                    </button>
-                  </div>
-                  <div className={`slot-meals${view === 'both' ? ' two' : ''}`}>
-                    {inSlot.map((m) => {
-                      const kcal =
-                        tracking && view !== 'both'
-                          ? (() => {
-                              const r = mealNutrition(m, view as Person, lookup);
-                              return r && r.n.kcal ? `${fmtKcal(r.n.kcal)} kcal` : undefined;
-                            })()
-                          : undefined;
-                      return (
-                        <div key={m.id} className={`slot-cell ${m.who}`}>
-                          <MealChip meal={m} recipe={lookup.recipe} kcal={kcal} onClick={() => setEditing({ meal: m, body: m, date })} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <button key={d} role="tab" aria-selected={d === selected} className={`date-pill${d === selected ? ' on' : ''}${d === t ? ' today' : ''}${d < t ? ' past' : ''}`} onClick={() => setSelected(d)}>
+                  <span className="dp-day">{weekday(d)}</span>
+                  <span className="dp-num">{fromISO(d).getDate()}</span>
+                  <span className={`dp-dot${n ? ' has' : ''}`} />
+                </button>
               );
             })}
-            {empty.length > 0 && (
-              <div className="add-row">
-                {empty.map((s) => (
-                  <button key={s} className="add-chip" onClick={() => add(date, s)}>
-                    <Icon name="plus" size={14} /> {SLOT_LABELS[s]}
+          </div>
+          <DayCard
+            date={selected}
+            today={t}
+            meals={mealsOn(selected)}
+            view={view}
+            lookup={lookup}
+            totals={totals(selected)}
+            onOpen={(m) => setEditing({ meal: m, body: m, date: selected })}
+            onAdd={(slot) => add(selected, slot)}
+          />
+        </>
+      ) : (
+        <>
+          {past.length > 0 && (
+            <button className="past-toggle" onClick={() => setShowPast((x) => !x)} aria-expanded={showPast}>
+              <Icon name={showPast ? 'up' : 'down'} size={16} />
+              {showPast ? 'Hide earlier days' : past.length === 1 ? `Show ${weekday(past[0])}` : `Show earlier days (${weekday(past[0])}–${weekday(past[past.length - 1])})`}
+            </button>
+          )}
+          {weekDays.map((date) => {
+            const meals = mealsOn(date);
+            return (
+              <section key={date} className={`card day week-day${date === t ? ' today' : ''}${date < t ? ' past' : ''}`}>
+                <header className="day-head">
+                  <button className="day-link" onClick={() => { setSelected(date); store.setDevice({ calMode: 'day' }); }}>
+                    <strong>{dayLabel(date)}</strong>
                   </button>
-                ))}
-              </div>
-            )}
-          </section>
-        );
-      })}
+                  {date === t && <span className="today-badge">Today</span>}
+                  {totals(date)}
+                  <button className="slot-add" onClick={() => add(date)} aria-label={`Add a meal on ${dayLabel(date)}`}>
+                    <Icon name="plus" size={16} />
+                  </button>
+                </header>
+                {meals.length === 0 ? (
+                  <button className="week-empty" onClick={() => add(date)}>Nothing planned</button>
+                ) : (
+                  SLOTS.filter((s) => meals.some((m) => m.slot === s)).map((slot) => (
+                    <div key={slot} className="week-slot">
+                      <span className="week-slot-name">{SLOT_LABELS[slot]}</span>
+                      <span className="week-meals">
+                        {meals
+                          .filter((m) => m.slot === slot)
+                          .map((m) => (
+                            <button key={m.id} className={`week-meal ${m.who}`} onClick={() => setEditing({ meal: m, body: m, date })}>
+                              {m.label && <span className="meal-label">{m.label}</span>}
+                              {m.leftovers && <span className="meal-label">Leftovers</span>}
+                              {mealTitle(m, lookup.recipe)}
+                            </button>
+                          ))}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </section>
+            );
+          })}
+        </>
+      )}
       {totalsFor.length > 0 && <p className="small-print">* some meals on that day have no numbers yet (notes, or ingredients without a food).</p>}
 
       {editing && (
@@ -156,8 +201,63 @@ export function CalendarView() {
           onClose={() => setEditing(null)}
         />
       )}
-      {sheet === 'add-menu' && <AddMenuSheet defaultStart={start < t ? t : start} onClose={() => setSheet(null)} />}
+      {sheet === 'add-menu' && <AddMenuSheet defaultStart={mode === 'day' ? (selected < t ? t : selected) : start < t ? t : start} onClose={() => setSheet(null)} />}
       {sheet === 'save-menu' && <SaveAsMenuSheet start={start} onClose={() => setSheet(null)} />}
     </>
+  );
+}
+
+/** One day: the meals planned, slot by slot, and one button to add another. */
+function DayCard({
+  date,
+  today: t,
+  meals,
+  view,
+  lookup,
+  totals,
+  onOpen,
+  onAdd,
+}: {
+  date: string;
+  today: string;
+  meals: Meal[];
+  view: Who;
+  lookup: { recipe: (id: string) => Recipe | undefined };
+  totals: ReactNode;
+  onOpen: (m: Meal) => void;
+  onAdd: (slot?: Slot) => void;
+}) {
+  const slots = SLOTS.filter((s) => meals.some((m) => m.slot === s));
+  return (
+    <section className={`card day${date === t ? ' today' : ''}`}>
+      <header className="day-head">
+        <strong>{dayLabel(date)}</strong>
+        {date === t && <span className="today-badge">Today</span>}
+        {totals}
+      </header>
+      {slots.length === 0 && <p className="day-empty">Nothing planned yet.</p>}
+      {slots.map((slot) => (
+        <div key={slot} className="slot">
+          <div className="slot-head">
+            <span>{SLOT_LABELS[slot]}</span>
+            <button className="slot-add" onClick={() => onAdd(slot)} aria-label={`Add to ${SLOT_LABELS[slot]}`}>
+              <Icon name="plus" size={16} />
+            </button>
+          </div>
+          <div className={`slot-meals${view === 'both' ? ' two' : ''}`}>
+            {meals
+              .filter((m) => m.slot === slot)
+              .map((m) => (
+                <div key={m.id} className={`slot-cell ${m.who}`}>
+                  <MealChip meal={m} recipe={lookup.recipe} onClick={() => onOpen(m)} />
+                </div>
+              ))}
+          </div>
+        </div>
+      ))}
+      <button className="btn add-meal" onClick={() => onAdd()}>
+        <Icon name="plus" size={18} /> Add a meal
+      </button>
+    </section>
   );
 }

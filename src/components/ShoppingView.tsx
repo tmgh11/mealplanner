@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { HoldButton, Icon, Seg, Sheet, toast } from './ui';
-import { WhoSwitch, useView } from './WhoSwitch';
+import { WhoSwitch } from './WhoSwitch';
 import { newId, store, useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { addDays, fromISO, isISODate, today } from '../lib/dates';
@@ -15,7 +15,8 @@ const shows = (i: ShopItem, view: Who) =>
 
 export function ShoppingView() {
   const { shopping, settings, device } = useStore();
-  const view = useView();
+  // the list has its own Tom / Nuria / Both switch, starting on Both
+  const view: Who = device.shopView ?? 'both';
   const foods = useFoods();
   const [text, setText] = useState('');
   const [open, setOpen] = useState<ShopGroup | null>(null);
@@ -72,7 +73,7 @@ export function ShoppingView() {
 
   return (
     <>
-      <WhoSwitch />
+      <WhoSwitch value={view} onChange={(v) => store.setDevice({ shopView: v })} />
       <form
         className="search shop-add"
         onSubmit={(e) => {
@@ -115,7 +116,7 @@ export function ShoppingView() {
         </section>
       )}
 
-      {shopping.length > 0 && <ClearAll />}
+      {mine.length > 0 && <ClearAll items={mine} view={view} />}
 
       {open && <GroupSheet group={open} onClose={() => setOpen(null)} />}
       {fromCal && <FromCalendarSheet onClose={() => setFromCal(false)} />}
@@ -124,21 +125,27 @@ export function ShoppingView() {
 }
 
 /** Clearing everything, at the foot of the list: needs a press and hold, and can be undone. */
-function ClearAll() {
-  const { shopping } = useStore();
-  const toBuy = shopping.filter((i) => !i.checked).length;
+function ClearAll({ items, view }: { items: ShopItem[]; view: Who }) {
+  const { settings } = useStore();
+  const toBuy = items.filter((i) => !i.checked).length;
+  const other: Person | null = view === 'tom' ? 'nuria' : view === 'nuria' ? 'tom' : null;
+  // in one person's view, lines that are also on the other person's list
+  const shared = other ? items.filter((i) => shows(i, other)).length : 0;
+  const whose = view === 'both' ? 'the whole list' : `${settings.names[view]}’s list`;
   const clear = () => {
-    const all = [...shopping];
+    const all = [...items];
     store.put(...all.map((i) => ({ ...i, deleted: true })));
-    toast(`Cleared ${all.length} items`, { label: 'Undo', run: () => store.put(...all.map((i) => ({ ...i, deleted: false }))) }, 10000);
+    toast(`Cleared ${all.length} item${all.length === 1 ? '' : 's'}`, { label: 'Undo', run: () => store.put(...all.map((i) => ({ ...i, deleted: false }))) }, 10000);
   };
   return (
     <div className="clear-all">
       <HoldButton className="danger-soft" onDone={clear} holdingLabel="Keep holding to clear…">
-        <Icon name="trash" size={18} /> Hold to clear the whole list
+        <Icon name="trash" size={18} /> Hold to clear {whose}
       </HoldButton>
       <p className="small-print">
-        Removes all {shopping.length} item{shopping.length === 1 ? '' : 's'} on both phones{toBuy ? `, ${toBuy} not yet ticked` : ''}. You can undo straight afterwards.
+        Removes the {items.length} item{items.length === 1 ? '' : 's'} shown here{toBuy ? `, ${toBuy} not yet ticked` : ''}
+        {other && shared ? `. ${shared} of them ${shared === 1 ? 'is' : 'are'} on ${settings.names[other]}’s list too` : ''}
+        {other && !shared ? `. ${settings.names[other]}’s items stay` : ''}. You can undo straight afterwards.
       </p>
     </div>
   );
@@ -218,7 +225,7 @@ const fmtDay = (d: string) => fromISO(d).toLocaleDateString('en-GB', { weekday: 
 
 function FromCalendarSheet({ onClose }: { onClose: () => void }) {
   const { mealsByDate, shopping, recipes, settings, device } = useStore();
-  const view = useView();
+  const view: Who = device.shopView ?? 'both';
   const foods = useFoods();
   const [from, setFrom] = useState(today());
   const [days, setDays] = useState('7');
@@ -327,10 +334,6 @@ export function ChooseItemsSheet({ title, items, note, onClose, onAdded }: { tit
       <p className="text-2" style={{ marginTop: 0, fontSize: 14 }}>
         {note ? `${note} ` : ''}Untick anything you already have at home.
       </p>
-      <div className="btn-row" style={{ marginBottom: 4 }}>
-        <button className="btn small grow-btn" onClick={() => setOff(new Set())} disabled={!off.size}>Tick all</button>
-        <button className="btn small grow-btn" onClick={() => setOff(new Set(groups.map((g) => g.key)))} disabled={off.size === groups.length}>Untick all</button>
-      </div>
       {aisles.map((a) => (
         <section key={a.aisle}>
           <div className="section-title">{a.aisle}</div>

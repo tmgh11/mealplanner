@@ -18,6 +18,10 @@ export interface DeviceSettings {
   me: Person;
   /** the Tom / Nuria / Both switch; starts on this phone's person */
   view?: Who;
+  /** the shopping list's own switch; starts on Both */
+  shopView?: Who;
+  /** the calendar: one day at a time, or the whole week */
+  calMode?: 'day' | 'week';
   supabaseUrl?: string;
   supabaseKey?: string;
   onboarded?: boolean;
