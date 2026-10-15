@@ -215,7 +215,14 @@ export function splitItems(text: string, commas = true): string[] {
 export function splitRecipeIngredients(text: string): string[] {
   const lines = splitItems(text, false);
   if (lines.length === 1 && /\d\s*(g|ml)\b.*,.*\d/.test(lines[0])) return splitItems(text, true);
-  return lines;
+  // "butter" + "for the tin:" is one ingredient, not a heading ("For the sauce:" with a capital is)
+  const out: string[] = [];
+  for (const l of lines) {
+    const t = l.trim();
+    if (out.length && /^(for|to) [a-z]/.test(t) && /:$/.test(t) && !/:$/.test(out[out.length - 1])) out[out.length - 1] += `, ${t.slice(0, -1)}`;
+    else out.push(l);
+  }
+  return out;
 }
 
 /** For display: "120 g", "2 tbsp", "4 cloves", "½". */

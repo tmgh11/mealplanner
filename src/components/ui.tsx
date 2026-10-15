@@ -5,10 +5,15 @@ import { isISODate } from '../lib/dates';
 type IconName =
   | 'plus' | 'camera' | 'arrows' | 'repeat' | 'chart' | 'list' | 'settings' | 'close' | 'trash' | 'check'
   | 'left' | 'right' | 'search' | 'swap' | 'upload' | 'download' | 'pause' | 'play' | 'cloud'
-  | 'book' | 'leaf' | 'edit' | 'link' | 'alert' | 'scale' | 'calendar' | 'cart' | 'globe';
+  | 'book' | 'leaf' | 'edit' | 'link' | 'alert' | 'scale' | 'calendar' | 'cart' | 'globe' | 'more' | 'grip' | 'up' | 'down' | 'heading';
 
 const PATHS: Record<IconName, ReactNode> = {
   plus: <path d="M12 5v14M5 12h14" />,
+  more: <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth={3.2} />,
+  grip: <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" strokeWidth={3.2} />,
+  up: <path d="M12 19V5M6 11l6-6 6 6" />,
+  down: <path d="M12 5v14M6 13l6 6 6-6" />,
+  heading: <path d="M6 5v14M18 5v14M6 12h12" />,
   camera: (
     <>
       <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.4-2h5.6l1.4 2h1.3A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z" />
@@ -372,10 +377,12 @@ export function haptic() {
  * A button that only fires after being pressed and held (for things that are hard to undo by
  * accident, like clearing the whole shopping list). A bar fills while it's held.
  */
-export function HoldButton({ ms = 1500, onDone, children, className = '' }: { ms?: number; onDone: () => void; children: ReactNode; className?: string }) {
+export function HoldButton({ ms = 1500, onDone, children, className = '', holdingLabel }: { ms?: number; onDone: () => void; children: ReactNode; className?: string; holdingLabel?: ReactNode }) {
   const [holding, setHolding] = useState(false);
   const timer = useRef<number | undefined>(undefined);
-  const start = () => {
+  const startY = useRef(0);
+  const start = (y = 0) => {
+    startY.current = y;
     setHolding(true);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
@@ -394,7 +401,9 @@ export function HoldButton({ ms = 1500, onDone, children, className = '' }: { ms
       type="button"
       className={`btn hold-btn ${className}${holding ? ' holding' : ''}`}
       style={{ ['--hold-ms' as string]: `${ms}ms` }}
-      onPointerDown={start}
+      onPointerDown={(e) => start(e.clientY)}
+      // a finger that moves is scrolling the page, not holding
+      onPointerMove={(e) => holding && Math.abs(e.clientY - startY.current) > 10 && stop()}
       onPointerUp={stop}
       onPointerLeave={stop}
       onPointerCancel={stop}
@@ -403,7 +412,49 @@ export function HoldButton({ ms = 1500, onDone, children, className = '' }: { ms
       onKeyUp={stop}
     >
       <span className="hold-fill" aria-hidden="true" />
-      <span className="hold-label">{children}</span>
+      <span className="hold-label">{holding && holdingLabel ? holdingLabel : children}</span>
     </button>
+  );
+}
+
+/** A "⋯" button that opens a short list of actions. */
+export function MoreMenu({ items, label = 'More', small }: { items: { label: string; icon?: IconName; danger?: boolean; run: () => void }[]; label?: string; small?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && (e.stopPropagation(), setOpen(false));
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc, true);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', esc, true);
+    };
+  }, [open]);
+  return (
+    <div className="more" ref={ref}>
+      <button className={small ? 'icon-btn small' : 'icon-btn head-action'} onClick={() => setOpen((x) => !x)} aria-label={label} aria-haspopup="menu" aria-expanded={open}>
+        <Icon name="more" size={small ? 18 : 20} />
+      </button>
+      {open && (
+        <div className="more-menu" role="menu">
+          {items.map((it) => (
+            <button
+              key={it.label}
+              role="menuitem"
+              className={it.danger ? 'danger' : undefined}
+              onClick={() => {
+                setOpen(false);
+                it.run();
+              }}
+            >
+              {it.icon && <Icon name={it.icon} size={18} />}
+              {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react';
 import { Icon } from './ui';
 import { WhoSwitch, WhoTag, useView } from './WhoSwitch';
 import { RecipeEditor } from './RecipeEditor';
+import { RecipeView } from './RecipeView';
 import { PaprikaImportSheet } from './ImportRecipes';
 import { useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { perServing, recipeTotals, fmtKcal } from '../lib/nutrition';
-import { visibleIn, type Recipe } from '../lib/types';
+import { visibleIn } from '../lib/types';
 
 /** Does the person on this phone want to see nutrition? */
 export function useTracking() {
@@ -20,7 +21,8 @@ export function RecipesView() {
   const foods = useFoods();
   const tracking = useTracking();
   const [q, setQ] = useState('');
-  const [open, setOpen] = useState<{ recipe?: Recipe } | null>(null);
+  const [viewing, setViewing] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
 
   const shown = useMemo(() => {
@@ -58,7 +60,7 @@ export function RecipesView() {
             const t = foods.ready ? recipeTotals(r.ingredients, foods.get) : null;
             const kcal = t ? perServing(r, t).kcal : null;
             return (
-              <button key={r.id} className="row" onClick={() => setOpen({ recipe: r })}>
+              <button key={r.id} className="row" onClick={() => setViewing(r.id)}>
                 {r.photo ? <img className="thumb" src={r.photo} alt="" loading="lazy" /> : <span className="thumb thumb-empty"><Icon name="book" size={18} /></span>}
                 <span className="row-main">
                   <span className="row-title">{r.title || 'Untitled recipe'}</span>
@@ -82,12 +84,13 @@ export function RecipesView() {
       </button>
 
       <div className="home-actions">
-        <button className="btn primary add" onClick={() => setOpen({})}>
+        <button className="btn primary add" onClick={() => setAdding(true)}>
           <Icon name="plus" size={22} stroke={2.4} /> Add recipe
         </button>
       </div>
 
-      {open && <RecipeEditor initial={open.recipe} onClose={() => setOpen(null)} />}
+      {viewing && <RecipeView id={viewing} onClose={() => setViewing(null)} />}
+      {adding && <RecipeEditor onClose={() => setAdding(false)} />}
       {importing && <PaprikaImportSheet onClose={() => setImporting(false)} />}
     </>
   );

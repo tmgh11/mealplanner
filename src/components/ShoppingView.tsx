@@ -20,7 +20,6 @@ export function ShoppingView() {
   const [text, setText] = useState('');
   const [open, setOpen] = useState<ShopGroup | null>(null);
   const [fromCal, setFromCal] = useState(false);
-  const [clearing, setClearing] = useState(false);
 
   const mine = useMemo(() => shopping.filter((i) => shows(i, view)), [shopping, view]);
   const aisles = useMemo(() => groupShopping(mine), [mine]);
@@ -116,41 +115,32 @@ export function ShoppingView() {
         </section>
       )}
 
-      {shopping.length > 0 && (
-        <button className="clear-all" onClick={() => setClearing(true)}>
-          Clear the whole list…
-        </button>
-      )}
+      {shopping.length > 0 && <ClearAll />}
 
       {open && <GroupSheet group={open} onClose={() => setOpen(null)} />}
       {fromCal && <FromCalendarSheet onClose={() => setFromCal(false)} />}
-      {clearing && <ClearAllSheet onClose={() => setClearing(false)} />}
     </>
   );
 }
 
-/** Clearing everything: says exactly what goes, and needs a press and hold. */
-function ClearAllSheet({ onClose }: { onClose: () => void }) {
-  const { shopping, settings } = useStore();
+/** Clearing everything, at the foot of the list: needs a press and hold, and can be undone. */
+function ClearAll() {
+  const { shopping } = useStore();
   const toBuy = shopping.filter((i) => !i.checked).length;
-  const by = (p: Person) => shopping.filter((i) => i.addedBy === p).length;
   const clear = () => {
     const all = [...shopping];
     store.put(...all.map((i) => ({ ...i, deleted: true })));
     toast(`Cleared ${all.length} items`, { label: 'Undo', run: () => store.put(...all.map((i) => ({ ...i, deleted: false }))) }, 10000);
-    onClose();
   };
   return (
-    <Sheet title="Clear the whole list?" onClose={onClose} footer={<HoldButton className="danger-fill" onDone={clear}>Press and hold to clear</HoldButton>}>
-      <p className="text-2" style={{ marginTop: 0 }}>
-        This removes <strong>all {shopping.length} items</strong> from the list on both phones
-        {toBuy ? `, including ${toBuy} not yet ticked off` : ''}.
+    <div className="clear-all">
+      <HoldButton className="danger-soft" onDone={clear} holdingLabel="Keep holding to clear…">
+        <Icon name="trash" size={18} /> Hold to clear the whole list
+      </HoldButton>
+      <p className="small-print">
+        Removes all {shopping.length} item{shopping.length === 1 ? '' : 's'} on both phones{toBuy ? `, ${toBuy} not yet ticked` : ''}. You can undo straight afterwards.
       </p>
-      <div className="note">
-        {settings.names.tom} added {by('tom')} · {settings.names.nuria} added {by('nuria')}
-      </div>
-      <p className="small-print">You can undo it straight afterwards. To remove only what’s been bought, use Clear next to “In the basket”.</p>
-    </Sheet>
+    </div>
   );
 }
 

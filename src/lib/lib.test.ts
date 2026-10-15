@@ -254,3 +254,10 @@ describe('vague amounts and recipe-site wording', () => {
     expect(g('2 tbsp sunflower oil').ingredient.foodId).toBeTruthy();
   });
 });
+
+describe('ingredient lines from Paprika', () => {
+  it('joins "for the tin:" onto the line before, but keeps "For the sauce:" as a heading', () => {
+    expect(splitRecipeIngredients('butter\nfor the tin:\n800g soft cheese').map((l) => l.trim())).toEqual(['butter, for the tin', '800g soft cheese']);
+    expect(splitRecipeIngredients('For the sauce:\n1 onion').map((l) => l.trim())).toEqual(['For the sauce:', '1 onion']);
+  });
+});

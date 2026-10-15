@@ -41,6 +41,7 @@ export function RecipeEditor({ initial, draft, onClose }: { initial?: Recipe; dr
     const clean: Recipe = {
       ...r,
       title: r.title.trim() || 'Untitled recipe',
+      ingredients: r.ingredients.filter((i) => !i.heading || i.text.trim()),
       tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
       sourceUrl: r.sourceUrl?.trim() || undefined,
     };

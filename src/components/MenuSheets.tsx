@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Icon, Seg, Sheet, toast } from './ui';
+import { HoldButton, Icon, Seg, Sheet, toast } from './ui';
 import { WhoTag, useView } from './WhoSwitch';
 import { newId, store, useStore } from '../lib/store';
 import { addDays, fromISO, isISODate } from '../lib/dates';
@@ -74,10 +74,17 @@ export function AddToCalendarSheet({ menu, defaultStart, onClose }: { menu: Menu
       title={`Add “${menu.name}”`}
       onClose={onClose}
       footer={
+        // replacing meals already planned needs a press and hold, so it can't happen by accident
+        mode === 'replace' && plan && plan.add.length > 0 && plan.remove.length + plan.update.length > 0 ? (
+          <HoldButton className="danger-fill" onDone={apply} holdingLabel="Keep holding to replace…">
+            Hold to replace {plan.remove.length + plan.update.length} &amp; add {plan.add.length} meals
+          </HoldButton>
+        ) : (
         <button className="btn primary save" disabled={!plan?.add.length} onClick={apply}>
           <span>{plan?.add.length ? `Add ${plan.add.length} meals` : 'Nothing to add'}</span>
           {isISODate(start) && n > 0 && <span className="save-sub">{n === 1 ? fmtDay(start) : `${fmtDay(start)} – ${fmtDay(end)}`}</span>}
         </button>
+        )
       }
     >
       <div className="inline">

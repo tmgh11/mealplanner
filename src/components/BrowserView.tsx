@@ -2,43 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Icon, Seg, Sheet, toast } from './ui';
 import { WhoTag, useView } from './WhoSwitch';
 import { RecipeEditor } from './RecipeEditor';
+import { RecipeView } from './RecipeView';
 import { newId, store, useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { fetchWebRecipe, FetchProblem } from '../lib/fetchRecipe';
 import { findUrl, webToRecipe, type WebRecipe } from '../lib/recipeWeb';
 import type { Recipe, Who } from '../lib/types';
-
-const DEFAULT_SITES = [
-  { name: 'BBC Good Food', url: 'https://www.bbcgoodfood.com' },
-  { name: 'Eatwell101', url: 'https://www.eatwell101.com' },
-];
-
-/** friendly names for sites recipes often come from */
-const KNOWN: Record<string, string> = {
-  'bbcgoodfood.com': 'BBC Good Food',
-  'bbc.co.uk': 'BBC Food',
-  'olivemagazine.com': 'Olive Magazine',
-  'thekitchn.com': 'The Kitchn',
-  'seriouseats.com': 'Serious Eats',
-  'bonappetit.com': 'Bon Appétit',
-  'jamieoliver.com': 'Jamie Oliver',
-  'deliciousmagazine.co.uk': 'Delicious',
-  'theguardian.com': 'The Guardian',
-  'nytimes.com': 'NYT Cooking',
-  'cooking.nytimes.com': 'NYT Cooking',
-  'allrecipes.com': 'Allrecipes',
-  'budgetbytes.com': 'Budget Bytes',
-  'recipetineats.com': 'RecipeTin Eats',
-  'lincolnshirelife.co.uk': 'Lincolnshire Life',
-  'pinchofyum.com': 'Pinch of Yum',
-  'minimalistbaker.com': 'Minimalist Baker',
-  'loveandlemons.com': 'Love and Lemons',
-  'sainsburysmagazine.co.uk': 'Sainsbury’s Magazine',
-  'tesco.com': 'Tesco Real Food',
-  'realfood.tesco.com': 'Tesco Real Food',
-  'eatwell101.com': 'Eatwell101',
-  'sunglowkitchen.com': 'Sunglow Kitchen',
-};
 
 const host = (u: string) => {
   try {
@@ -47,12 +16,11 @@ const host = (u: string) => {
     return '';
   }
 };
-const siteName = (h: string) => KNOWN[h] ?? h.replace(/\.(co\.uk|com|net|org|co|uk)$/, '').replace(/[-.]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 /**
  * The Browser: paste (or share in) a recipe link and the app reads the recipe off the page.
- * A web app can't show other sites inside itself, so searching and favourite sites open in the
- * phone's browser; share or copy the recipe's link back here.
+ * A web app can't show other sites inside itself, so searching opens in the phone's browser;
+ * share or copy the recipe's link back here.
  */
 export function BrowserView({ incoming, onIncomingUsed }: { incoming?: string; onIncomingUsed: () => void }) {
   const { recipes } = useStore();
@@ -61,6 +29,7 @@ export function BrowserView({ incoming, onIncomingUsed }: { incoming?: string; o
   const [problem, setProblem] = useState<FetchProblem | null>(null);
   const [found, setFound] = useState<WebRecipe | null>(null);
   const [editing, setEditing] = useState<Recipe | null>(null);
+  const [viewing, setViewing] = useState<string | null>(null);
 
   const read = async (raw: string) => {
     const url = findUrl(raw);
@@ -91,18 +60,6 @@ export function BrowserView({ incoming, onIncomingUsed }: { incoming?: string; o
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incoming]);
-
-  // favourite sites: the ones your recipes come from most, plus a couple of good UK ones
-  const sites = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const r of recipes) {
-      const h = r.sourceUrl && host(r.sourceUrl);
-      if (h) counts.set(h, (counts.get(h) ?? 0) + 1);
-    }
-    const yours = [...counts].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([h]) => ({ name: siteName(h), url: `https://${h}` }));
-    const all = [...yours, ...DEFAULT_SITES];
-    return all.filter((s, i) => all.findIndex((x) => host(x.url) === host(s.url)) === i).slice(0, 8);
-  }, [recipes]);
 
   const recent = recipes.filter((r) => r.importId?.startsWith('web:')).slice(-4).reverse();
   const isUrl = Boolean(findUrl(text));
@@ -137,29 +94,16 @@ export function BrowserView({ incoming, onIncomingUsed }: { incoming?: string; o
       {busy && <div className="note">Reading the recipe from the page…</div>}
       {problem && <ProblemNote problem={problem} onBlank={() => setEditing(blankFromUrl(text))} />}
 
-      <div className="section-title">Sites</div>
-      <div className="site-grid">
-        {sites.map((s) => (
-          <a key={s.url} className="site-chip" href={s.url} target="_blank" rel="noopener noreferrer">
-            <Icon name="link" size={16} />
-            <span>{s.name}</span>
-          </a>
-        ))}
-      </div>
-
-      <div className="section-title">How to save a recipe you find</div>
-      <div className="card pad how">
-        <p><strong>Android:</strong> on the recipe page in Chrome, tap <strong>Share</strong> and choose <strong>Meal Planner</strong>.</p>
-        <p><strong>iPhone:</strong> tap <strong>Share → Copy</strong>, then paste the link in the box above.</p>
-        <p className="muted">The app reads the recipe from the page and matches its ingredients to the UK food data. You can check everything before it’s saved.</p>
-      </div>
+      {!busy && !problem && recent.length === 0 && (
+        <p className="small-print browser-hint">Paste a link to any recipe page and the app reads the recipe in for you. Type words instead to search the web.</p>
+      )}
 
       {recent.length > 0 && (
         <>
           <div className="section-title">Recently saved</div>
           <div className="card list">
             {recent.map((r) => (
-              <button key={r.id} className="row" onClick={() => setEditing(r)}>
+              <button key={r.id} className="row" onClick={() => setViewing(r.id)}>
                 {r.photo && <img className="thumb" src={r.photo} alt="" />}
                 <span className="row-main">
                   <span className="row-title">{r.title}</span>
@@ -172,8 +116,9 @@ export function BrowserView({ incoming, onIncomingUsed }: { incoming?: string; o
         </>
       )}
 
-      {found && <FoundSheet recipe={found} onClose={() => setFound(null)} onSaved={(r) => { setFound(null); setEditing(r); }} />}
-      {editing && <RecipeEditor initial={recipes.some((r) => r.id === editing.id) ? editing : undefined} draft={editing} onClose={() => setEditing(null)} />}
+      {found && <FoundSheet recipe={found} onClose={() => setFound(null)} onSaved={(r) => { setFound(null); setViewing(r.id); }} />}
+      {viewing && <RecipeView id={viewing} onClose={() => setViewing(null)} />}
+      {editing && <RecipeEditor draft={editing} onClose={() => setEditing(null)} />}
     </>
   );
 }

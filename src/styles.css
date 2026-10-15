@@ -611,8 +611,13 @@ textarea.input { resize: vertical; line-height: 1.4; }
 .shop-row.pick .shop-main { padding-left: 2px; }
 .shop-row.pick.done .shop-name, .shop-row.pick.done .shop-amt { text-decoration: none; color: var(--text); font-weight: 600; }
 .shop-row.pick.skipped .shop-name, .shop-row.pick.skipped .shop-amt { color: var(--muted); text-decoration: line-through; }
-.clear-all { display: block; margin: 28px auto 8px; font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: underline; min-height: 44px; padding: 0 12px; }
-.hold-btn { position: relative; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
+.clear-all { margin: 32px 0 8px; text-align: center; }
+.clear-all .small-print { margin: 8px 8px 0; }
+.hold-btn { position: relative; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: pan-y; }
+.hold-btn .hold-label { display: inline-flex; align-items: center; gap: 8px; }
+.btn.danger-soft { background: var(--surface); border: 1px solid var(--border-strong); color: var(--danger); }
+.btn.danger-soft .hold-fill { background: var(--danger); opacity: 0.16; }
+.btn.danger-soft.holding { border-color: var(--danger); }
 .hold-btn .hold-fill { position: absolute; inset: 0; width: 0; background: rgba(0, 0, 0, 0.18); }
 .hold-btn.holding .hold-fill { width: 100%; transition: width var(--hold-ms) linear; }
 .hold-btn .hold-label { position: relative; }
@@ -644,3 +649,59 @@ textarea.input { resize: vertical; line-height: 1.4; }
 .found-title { font-size: 21px; margin: 14px 0 6px; letter-spacing: -0.01em; }
 .plain-list { margin: 0; padding-left: 20px; font-size: 14.5px; line-height: 1.5; color: var(--text-2); }
 .plain-list li { margin-bottom: 4px; }
+
+/* ---------- Reading a recipe ---------- */
+.more { position: relative; }
+.more-menu {
+  position: absolute; top: calc(100% + 6px); right: 8px; z-index: 5; min-width: 220px; padding: 6px;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+.more-menu button {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 0; background: none;
+  font: inherit; font-size: 16px; font-weight: 550; color: var(--text); text-align: left; border-radius: var(--radius-xs); cursor: pointer;
+}
+.more-menu button:active, .more-menu button:hover { background: var(--surface-2); }
+.more-menu button.danger { color: var(--danger); }
+.recipe-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 14.5px; color: var(--text-2); margin-bottom: 10px; }
+.recipe-meta a { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); }
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.tag { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); }
+.read-list { padding: 4px 16px; }
+.read-list .ing-heading { padding-top: 12px; }
+.read-ing { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 16px; line-height: 1.4; }
+.read-ing:last-child { border-bottom: 0; }
+.read-method .ing-heading { padding-left: 2px; }
+.step { display: flex; gap: 12px; margin-bottom: 14px; }
+.step-n {
+  flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); color: var(--text-2);
+  font-size: 13px; font-weight: 700; display: grid; place-items: center; margin-top: 1px;
+}
+.step p { margin: 0; font-size: 16px; line-height: 1.5; }
+.read-notes { margin: 0 0 16px; font-size: 15px; line-height: 1.5; color: var(--text-2); white-space: pre-wrap; }
+.browser-hint { margin: 4px 4px 0; }
+
+/* ---------- Reordering ingredients ---------- */
+.ing-row { display: flex; align-items: flex-start; gap: 4px; padding-left: 4px; background: var(--surface); position: relative; }
+.ing-row:first-child { border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
+.ing-row:last-child { border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+.ing-body { flex: 1; min-width: 0; }
+.grip {
+  flex: none; width: 28px; height: 36px; margin-top: -6px; display: grid; place-items: center; color: var(--muted);
+  cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.ing-row.dragging { z-index: 2; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18); border-radius: var(--radius-sm); }
+.ing-row.dragging .grip { cursor: grabbing; color: var(--text); }
+.is-dragging { user-select: none; -webkit-user-select: none; }
+.ing-head-row { align-items: center; padding-top: 10px; padding-bottom: 6px; }
+.ing-head-row .grip { margin-top: 0; }
+.ing-heading-input {
+  flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 750; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--text-2); padding: 6px 0; outline: none;
+}
+.ing-heading-input::placeholder { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--muted); }
+.ing-heading-input:focus { border-bottom: 2px solid var(--text); }
+.ing-top .more { margin: -4px -6px 0 0; }
+.ing-top .more .icon-btn.small { margin: 0; }
+.more-menu { min-width: 220px; }
+.ing-row .more-menu { right: 0; }
