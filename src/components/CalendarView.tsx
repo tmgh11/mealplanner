@@ -39,7 +39,9 @@ export function CalendarView() {
   const add = (date: string, slot?: Slot) => {
     const taken = mealsOn(date).map((m) => m.slot);
     const s = slot ?? SLOTS.find((x) => !taken.includes(x)) ?? 'dinner';
-    setEditing({ date, body: { slot: s, who: view, content: { type: 'note', text: '' } } });
+    // most meals are just for one of you: start with whoever's phone this is (or the person being viewed)
+    const who: Who = view === 'both' ? device.me : view;
+    setEditing({ date, body: { slot: s, who, content: { type: 'note', text: '' } } });
   };
 
   const saveMeal = (body: MealBody, date?: string) => {
@@ -100,7 +102,9 @@ export function CalendarView() {
         </button>
         <div className="week-title">
           <strong>{rangeLabel(start, addDays(start, 6))}</strong>
-          {isThisWeek && (mode === 'week' || selected === t) ? <span className="muted">This week</span> : <button className="link-btn small" onClick={backToToday}>Back to today</button>}
+          <span className="week-sub">
+            {isThisWeek && (mode === 'week' || selected === t) ? <span className="muted">This week</span> : <button className="link-btn small" onClick={backToToday}>Back to today</button>}
+          </span>
         </div>
         <button className="icon-btn" onClick={() => goWeek(1)} aria-label="Next week">
           <Icon name="right" size={18} />
@@ -175,7 +179,6 @@ export function CalendarView() {
                           .filter((m) => m.slot === slot)
                           .map((m) => (
                             <button key={m.id} className={`week-meal ${m.who}`} onClick={() => setEditing({ meal: m, body: m, date })}>
-                              {m.label && <span className="meal-label">{m.label}</span>}
                               {m.leftovers && <span className="meal-label">Leftovers</span>}
                               {mealTitle(m, lookup.recipe)}
                             </button>

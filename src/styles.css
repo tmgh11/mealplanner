@@ -755,3 +755,7 @@ button.step:active { background: var(--surface-2); }
 .week-meal.nuria::before { background: var(--nuria); }
 .week-meal .meal-label { flex: none; }
 .week-empty { display: block; width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--border); padding: 8px 2px 4px; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; }
+/* the line under the dates is the same height whatever it says, so nothing below moves */
+.week-sub { display: flex; align-items: center; justify-content: center; height: 22px; }
+.week-sub .link-btn { min-height: 0; height: 22px; padding: 0 4px; position: relative; }
+.week-sub .link-btn::after { content: ''; position: absolute; inset: -11px -8px; }

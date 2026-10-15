@@ -195,11 +195,7 @@ export function MealEditor({
         </div>
       )}
 
-      <div className="field" style={{ marginTop: 14 }}>
-        <label htmlFor="ml">Label (optional)</label>
-        <input id="ml" className="input" value={m.label ?? ''} onChange={(e) => setM({ ...m, label: e.target.value })} placeholder="e.g. Legume Day, Carb Swap" />
-      </div>
-      <div className="card set-group">
+      <div className="card set-group" style={{ marginTop: 14 }}>
         <div className="set-row toggle-row">
           <span className="grow">
             <div style={{ fontWeight: 600 }}>Leftovers</div>

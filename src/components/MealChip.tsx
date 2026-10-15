@@ -6,10 +6,9 @@ export function MealChip({ meal, recipe, onClick, kcal }: { meal: MealBody; reci
   const c = meal.content;
   return (
     <button className={`meal-chip ${meal.who}`} onClick={onClick}>
-      {(meal.label || meal.leftovers) && (
+      {meal.leftovers && (
         <span className="meal-tags">
-          {meal.label && <span className="meal-label">{meal.label}</span>}
-          {meal.leftovers && <span className="meal-label">Leftovers</span>}
+          <span className="meal-label">Leftovers</span>
         </span>
       )}
       <span className={`meal-title${c.type === 'items' ? ' items' : ''}`}>{mealTitle(meal, recipe)}</span>
