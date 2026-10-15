@@ -59,7 +59,7 @@ export function RecipesView() {
             const kcal = t ? perServing(r, t).kcal : null;
             return (
               <button key={r.id} className="row" onClick={() => setOpen({ recipe: r })}>
-                {r.photo ? <img className="thumb" src={r.photo} alt="" loading="lazy" /> : <span className="thumb empty"><Icon name="book" size={18} /></span>}
+                {r.photo ? <img className="thumb" src={r.photo} alt="" loading="lazy" /> : <span className="thumb thumb-empty"><Icon name="book" size={18} /></span>}
                 <span className="row-main">
                   <span className="row-title">{r.title || 'Untitled recipe'}</span>
                   <span className="row-sub">

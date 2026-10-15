@@ -28,6 +28,10 @@ export function resolveLine(text: string, foods: Food[]): Resolved {
   if (/^(warm |cold |boiling |hot |iced )?water$|cooking spray|to taste|^(sea |table )?salt( and (black )?pepper)?$|^(black )?pepper$|^salt (&|and) pepper$/i.test(parsed.name) && (parsed.qty == null || /water/i.test(parsed.name))) {
     return { ingredient: { id: newIngredientId(), text: parsed.text, qty: parsed.qty, unit: parsed.unit, foodId: null }, parsed, estimated: false, checkState: false, alternatives: [] };
   }
+  // "oil, for frying", "butter, for greasing": no amount given, so nothing to count
+  if (parsed.qty == null && parsed.grams == null && /\bfor (shallow[- ]|deep[- ])?(frying|fry|drizzling|greasing|brushing|cooking|the (tin|pan|dish))\b/i.test(`${parsed.name} ${parsed.note ?? ''}`)) {
+    return { ingredient: { id: newIngredientId(), text: parsed.text, foodId: null }, parsed, estimated: false, checkState: false, alternatives: [] };
+  }
   // a tin of something is the cooked, canned kind
   const tinned = parsed.unit === 'tin' && !/\b(canned|tinned)\b/i.test(parsed.name);
   const state = tinned && !parsed.state ? 'cooked' : parsed.state;
@@ -60,7 +64,7 @@ export function resolveLine(text: string, foods: Food[]): Resolved {
 /** Re-work the grams when someone picks a different food (e.g. "1 clove" needs the food's clove weight). */
 export function regram(ing: Ingredient, food: Food | null): Ingredient {
   const parsed = parseLine(ing.text);
-  const g = toGrams({ qty: ing.qty ?? parsed.qty, unit: ing.unit ?? parsed.unit, grams: parsed.grams }, food);
+  const g = toGrams({ qty: ing.qty ?? parsed.qty, unit: ing.unit ?? parsed.unit, grams: parsed.grams, size: parsed.size }, food);
   return { ...ing, foodId: food?.id ?? undefined, grams: g ? Math.round(g.grams * 10) / 10 : ing.grams };
 }
 

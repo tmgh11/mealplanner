@@ -17,6 +17,8 @@ export interface ParsedLine {
   note?: string;
   /** a weight given alongside a count, e.g. "1.5/225g zucchini" or "1 tin (400g) tomatoes" */
   grams?: number;
+  /** "large knob", "small bunch": the size of a loose amount */
+  size?: 'small' | 'medium' | 'large';
 }
 
 const FRACTIONS: Record<string, string> = { '½': '1/2', '¼': '1/4', '¾': '3/4', '⅓': '1/3', '⅔': '2/3', '⅛': '1/8' };
@@ -39,11 +41,16 @@ const UNITS: Record<string, string> = {
   bunch: 'bunch', sprig: 'sprig', sprigs: 'sprig', stick: 'stick', sticks: 'stick', head: 'head',
   large: 'large', medium: 'medium', small: 'small', triangle: 'triangle', triangles: 'triangle',
   pot: 'pot', pots: 'pot', scoop: 'scoop', scoops: 'scoop',
+  knob: 'knob', knobs: 'knob', thumb: 'thumb', cm: 'cm', leaf: 'leaf', leaves: 'leaf',
 };
+/** Loose amounts that a size word can go in front of: "large knob", "small bunch". */
+const LOOSE_UNITS = new Set(['knob', 'thumb', 'bunch', 'handful', 'piece', 'sprig', 'pinch']);
+/** Words that describe a food without naming it: "3 fat, fresh red chillies". */
+const DESCRIBING = new Set(['fat', 'fresh', 'large', 'small', 'medium', 'big', 'ripe', 'plump', 'juicy', 'firm', 'good', 'quality', 'thick', 'thin', 'long', 'mild', 'hot', 'whole', 'unwaxed', 'organic', 'free-range', 'free', 'range']);
 export const WEIGHT_UNITS = new Set(['g', 'kg', 'oz', 'lb']);
 export const VOLUME_UNITS = new Set(['ml', 'cl', 'l', 'tsp', 'tbsp', 'dsp', 'cup']);
 
-const WORD_QTY: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, half: 0.5 };
+const WORD_QTY: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, half: 0.5, few: 3, 'a few': 3, couple: 2, 'a couple': 2 };
 
 function readNumber(s: string): number | undefined {
   s = s.replace(',', '.');
@@ -72,6 +79,15 @@ export function parseLine(input: string): ParsedLine {
   if (times) s = `${times[2]} ${times[1]}${times[3]}`;
   const out: ParsedLine = { text, name: '' };
 
+  // "juice of 1 lime", "zest of 2 lemons", "zest and juice 1 orange"
+  const citrus = s.match(/^(?:the\s+)?(?:finely\s+)?(?:grated\s+)?(zest|juice|rind)(?:\s+(?:and|&)\s+(zest|juice|rind))?(?:\s+of)?\s+(.*)$/i);
+  if (citrus) {
+    const inner = parseLine(citrus[3]);
+    const fruit = inner.name.replace(/\b(lemon|lime|orange)s\b/i, '$1').replace(/\b(unwaxed|large|small|medium)\s+/gi, '');
+    const juice = [citrus[1], citrus[2]].some((x) => x && /juice/i.test(x));
+    return { text, qty: inner.qty ?? 1, unit: juice ? 'juice' : 'zest', name: juice ? `${fruit} juice` : `${fruit} peel`, ...(inner.note ? { note: inner.note } : {}) };
+  }
+
   // "1.5/225g zucchini": a count with its weight
   const countWeight = s.match(new RegExp(`^(${NUM})\\s*\\/\\s*(\\d+(?:[.,]\\d+)?)\\s*g\\b\\s*(.*)$`, 'i'));
   if (countWeight) {
@@ -84,7 +100,7 @@ export function parseLine(input: string): ParsedLine {
       out.qty = readNumber(q[1].trim());
       s = s.slice(q[0].length);
     } else {
-      const w = s.match(/^(a|an|one|two|three|four|five|six|half)\s+(?:of\s+)?/i);
+      const w = s.match(/^(a few|a couple|few|couple|a|an|one|two|three|four|five|six|half)\s+(?:of\s+)?/i);
       if (w) {
         out.qty = WORD_QTY[w[1].toLowerCase()];
         s = s.slice(w[0].length);
@@ -100,7 +116,22 @@ export function parseLine(input: string): ParsedLine {
     out.unit = unit;
     s = s.slice(u[0].length);
     if (out.qty == null) out.qty = 1; // "slice gf toast" = 1 slice
+    // "large knob of ginger", "small bunch of coriander": the size goes with the loose amount
+    const loose = s.match(/^([a-zA-Z]+)(?:-sized)?\s+/);
+    if ((unit === 'large' || unit === 'small' || unit === 'medium') && loose && LOOSE_UNITS.has(UNITS[loose[1].toLowerCase()] ?? '')) {
+      out.size = unit;
+      out.unit = UNITS[loose[1].toLowerCase()];
+      s = s.slice(loose[0].length);
+    }
   }
+  // "thumb-sized piece of ginger", "2cm piece ginger"
+  const thumb = s.match(/^thumb[- ]?(?:sized?)?\s+(?:piece\s+)?(?:of\s+)?/i);
+  if (thumb && (!out.unit || out.unit === 'piece')) {
+    out.unit = 'thumb';
+    out.qty ??= 1;
+    s = s.slice(thumb[0].length);
+  }
+  if (out.unit === 'cm') s = s.replace(/^(?:piece|chunk|length)s?\s+(?:of\s+)?/i, '');
   s = s.replace(/^of\s+/i, '');
 
   // a weight in brackets after a count: "1 tin (400g) tomatoes"
@@ -125,13 +156,17 @@ export function parseLine(input: string): ParsedLine {
   });
   const comma = s.search(/,| - | – /);
   if (comma >= 0) {
-    notes.unshift(s.slice(comma + 1).replace(/^[-–\s]+/, '').trim());
+    const rest = s.slice(comma + 1).replace(/^[-–\s]+/, '').trim();
     s = s.slice(0, comma);
+    // "3 fat, fresh red chillies, deseeded": the first part only describes; the food comes next
+    const parts = rest.split(/,| - | – /);
+    while (parts.length && s.trim().split(/\s+/).every((w) => DESCRIBING.has(w.toLowerCase()))) s = `${s} ${parts.shift()}`;
+    if (parts.length) notes.unshift(parts.join(',').trim());
   }
 
   // "2 garlic cloves": the count word at the end
   const tail = s.trim().match(/^(.*\S)\s+([a-zA-Z]+)$/);
-  if (!out.unit && tail && ['clove', 'slice', 'fillet', 'tin', 'rasher', 'cube', 'triangle'].includes(UNITS[tail[2].toLowerCase()] ?? '')) {
+  if (!out.unit && tail && ['clove', 'slice', 'fillet', 'tin', 'rasher', 'cube', 'triangle', 'leaf'].includes(UNITS[tail[2].toLowerCase()] ?? '')) {
     out.unit = UNITS[tail[2].toLowerCase()];
     s = tail[1];
     if (out.qty == null) out.qty = 1;

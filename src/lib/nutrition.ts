@@ -10,7 +10,9 @@ import { VOLUME_UNITS, type ParsedLine } from './parse';
 const ML: Record<string, number> = { ml: 1, cl: 10, l: 1000, tsp: 5, dsp: 10, tbsp: 15, cup: 240 };
 const WEIGHT: Record<string, number> = { g: 1, kg: 1000, oz: 28.35, lb: 453.6 };
 /** Small amounts with no better information. */
-const LOOSE: Record<string, number> = { pinch: 0.5, handful: 30, sprig: 1, bunch: 25 };
+const LOOSE: Record<string, number> = { pinch: 0.5, handful: 30, sprig: 1, bunch: 25, knob: 10, thumb: 15, cm: 5, leaf: 0.5, zest: 2 };
+/** Juice from one fruit, in grams. */
+const JUICE: [RegExp, number][] = [[/^lime/i, 30], [/^lemon/i, 40], [/^orange/i, 90]];
 const SIZE: Record<string, number> = { small: 0.7, medium: 1, large: 1.3 };
 
 /** g per ml for things that aren't water-like. */
@@ -32,15 +34,22 @@ export interface GramsResult {
 }
 
 /** The weight of a parsed line, using the food's portion weights for counted things. */
-export function toGrams(p: Pick<ParsedLine, 'qty' | 'unit' | 'grams'>, food?: Food | null): GramsResult | null {
+export function toGrams(p: Pick<ParsedLine, 'qty' | 'unit' | 'grams' | 'size'>, food?: Food | null): GramsResult | null {
   if (p.grams != null) return { grams: p.grams, estimated: false };
+  const sized = (g: number) => g * (p.size ? SIZE[p.size] * (p.size === 'large' ? 1.25 : 1) : 1);
+  if (p.unit === 'juice') {
+    const each = JUICE.find(([re]) => re.test(food?.name ?? ''))?.[1] ?? 40;
+    return { grams: (p.qty ?? 1) * each, estimated: true };
+  }
   const unit = p.unit;
   // "boiled egg", "Yogurt": one of whatever it is, if we know what one weighs
   const qty = p.qty ?? (!unit && food?.portions.some((x) => x.unit === 'each') ? 1 : undefined);
   if (qty == null) return null;
   if (unit && WEIGHT[unit]) return { grams: qty * WEIGHT[unit], estimated: false };
   if (unit && VOLUME_UNITS.has(unit)) return { grams: qty * ML[unit] * (food ? density(food.name) : 1), estimated: unit !== 'ml' && unit !== 'l' && unit !== 'cl' ? true : false };
-  if (unit && LOOSE[unit]) return { grams: qty * LOOSE[unit], estimated: true };
+  // a length of root (ginger, turmeric) weighs far more than a length of cinnamon stick
+  if (unit === 'cm') return { grams: qty * (food && /ginger|galangal|turmeric|horseradish/i.test(food.name) ? 5 : 0.5), estimated: true };
+  if (unit && LOOSE[unit]) return { grams: sized(qty * LOOSE[unit]), estimated: true };
   if (!food) return null;
   const portions = food.portions;
   const exact = unit && portions.find((x) => x.unit === unit);

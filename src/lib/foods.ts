@@ -39,7 +39,8 @@ const DEFAULT_PORTIONS: [RegExp, Portion[]][] = [
   [/^tomatoes, cherry, raw/i, [{ unit: 'each', grams: 15 }]],
   [/^carrots, (old|young)?.*raw/i, [{ unit: 'each', grams: 80 }]],
   [/^potatoes, .*raw/i, [{ unit: 'each', grams: 175 }]],
-  [/^peppers, .*raw/i, [{ unit: 'each', grams: 160 }]],
+  [/^peppers, capsicum, chilli/i, [{ unit: 'each', grams: 15 }]],
+  [/^peppers?, .*raw/i, [{ unit: 'each', grams: 160 }]],
   [/^lemons/i, [{ unit: 'each', grams: 60 }]],
   [/^salmon, .*raw/i, [{ unit: 'fillet', grams: 120 }]],
   [/^(cod|haddock|pollock|hake|plaice|sea bass|bass, sea), .*raw/i, [{ unit: 'fillet', grams: 140 }]],
@@ -147,6 +148,21 @@ const SYNONYMS: Record<string, string> = {
   carrots: 'carrots', carrot: 'carrots', onion: 'onions', onions: 'onions', 'red onion': 'onions', potatoes: 'potatoes old flesh only', potato: 'potatoes old flesh only',
   apple: 'apples eating', apples: 'apples eating', pear: 'pears', orange: 'oranges flesh only', oranges: 'oranges flesh only', kiwi: 'kiwi fruit', banana: 'bananas', tomatoes: 'tomatoes', tomato: 'tomatoes',
   broccoli: 'broccoli green', cabbage: 'cabbage average', celery: 'celery', cucumber: 'cucumber', garlic: 'garlic', salmon: 'salmon farmed flesh only', tuna: 'tuna canned',
+  'red chillies': 'peppers capsicum chilli red', 'red chilli': 'peppers capsicum chilli red', 'green chillies': 'peppers capsicum chilli green',
+  'green chilli': 'peppers capsicum chilli green', 'bird s eye chillies': 'peppers capsicum chilli red', 'bird s eye chilli': 'peppers capsicum chilli red',
+  'scotch bonnet': 'peppers capsicum chilli red', jalapenos: 'peppers capsicum chilli green', jalapeno: 'peppers capsicum chilli green',
+  'chili powder': 'chilli powder', 'chili flakes': 'chilli powder', 'chilli fakes': 'chilli powder', 'red pepper flakes': 'chilli powder',
+  'flat-leaf parsley': 'parsley fresh', 'flat leaf parsley': 'parsley fresh', 'curly parsley': 'parsley fresh',
+  'soured cream': 'dips sour cream based', 'sour cream': 'dips sour cream based', margarine: 'fat spread reduced 62 75 polyunsaturated',
+  'iceberg lettuce': 'lettuce average', 'romaine lettuce': 'lettuce average', 'little gem': 'lettuce average', 'beefsteak tomatoes': 'tomatoes', 'cherry tomatoes': 'tomatoes',
+  cornstarch: 'flour corn', cornflour: 'flour corn', 'streaky bacon': 'bacon rashers streaky raw', 'back bacon': 'bacon rashers back raw',
+  'green onions': 'spring onions bulbs and tops', 'green onion': 'spring onions bulbs and tops', 'yellow onion': 'onions', 'white onion': 'onions', 'brown onion': 'onions',
+  'garlic paste': 'garlic', 'garlic puree': 'garlic', 'ginger paste': 'ginger fresh', 'ginger puree': 'ginger fresh', 'garlic powder': 'garlic powder',
+  'hot smoked paprika': 'paprika', 'tamarind paste': 'tamarind pulp', 'sea salt flakes': 'salt',
+  chillies: 'peppers capsicum chilli red', chilli: 'peppers capsicum chilli red', chili: 'peppers capsicum chilli red', chilies: 'peppers capsicum chilli red',
+  'chilli sauce': 'chilli sauce', 'sweet chilli sauce': 'chilli sauce', 'chilli con carne': 'chilli con carne', 'mint sauce': 'mint sauce',
+  mint: 'mint fresh', dill: 'dill fresh', rosemary: 'rosemary fresh', 'lemon juice': 'lemon juice fresh', 'lime juice': 'lime juice fresh',
+  'orange juice': 'orange juice freshly squeezed', 'lemon peel': 'lemon peel', 'lime peel': 'lemon peel', 'orange peel': 'lemon peel',
   chicken: 'chicken light meat', turkey: 'turkey light meat', 'turkey breast': 'turkey light meat', 'turkey slice': 'turkey light meat', beef: 'beef', pork: 'pork', lamb: 'lamb', steak: 'beef rump steak', 'lean beef': 'beef rump steak',
 };
 
@@ -158,10 +174,10 @@ const STOP = new Set(['of', 'the', 'and', 'with', 'a', 'an', 'fresh', 'frozen', 
   'torn', 'peeled', 'deveined', 'trimmed', 'drained', 'rinsed', 'washed', 'beaten', 'softened', 'melted', 'room', 'temperature', 'range',
   'freshly', 'kosher', 'coarse', 'flaky', 'sized', 'button', 'ready', 'readymade', 'prepared', 'sachet', 'pack', 'packet', 'jar', 'about',
   'approx', 'abt', 'plus', 'more', 'few', 'good', 'splash', 'knob', 'knobs', 'roasting', 'variety', 'clove', 'cloves', 'stick', 'sticks', 'bunch',
-  'generous', 'deseeded', 'seeded', 'shredded', 'zest', 'ground', 'roughly', 'large', 'thick', 'thin', 'slices', 'bite', 'shaped', 'tablespoon', 'teaspoon', 'pressed', 'cm', 'inch', 'removed', 'stem', 'skin', 'on', 'thumb', 'pan', 'fry', 'frying', 'drizzling', 'drizzle', 'greasing', 'serve', 'brushing']);
+  'generous', 'deseeded', 'seeded', 'shredded', 'zest', 'ground', 'roughly', 'large', 'thick', 'thin', 'slices', 'bite', 'shaped', 'tablespoon', 'teaspoon', 'pressed', 'cm', 'inch', 'removed', 'stem', 'stems', 'stalk', 'stalks', 'skin', 'on', 'thumb', 'pan', 'fry', 'frying', 'drizzling', 'drizzle', 'greasing', 'serve', 'brushing']);
 /** Words that narrow the choice when present but don't rule a food out when missing. */
 const SOFT = new Set(['raw', 'dry', 'dried', 'boiled', 'steamed', 'grilled', 'roasted', 'baked', 'poached', 'whole', 'plain', 'lean', 'low',
-  'fat', 'light', 'free', 'average', 'meat', 'only', 'flesh', 'extra', 'reduced']);
+  'fat', 'light', 'free', 'average', 'meat', 'only', 'flesh', 'extra', 'reduced', 'leaves', 'leave', 'leaf', 'lengthways', 'long', 'ways', 'sprigs', 'sprig']);
 
 const norm = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' ').replace(/[^a-z0-9\s/-]/g, ' ').replace(/\s+/g, ' ').trim();

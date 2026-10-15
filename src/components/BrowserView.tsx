@@ -214,8 +214,8 @@ function FoundSheet({ recipe, onClose, onSaved }: { recipe: WebRecipe; onClose: 
   const save = () => {
     if (!made) return;
     store.put(made);
-    toast('Saved to Recipes');
-    onSaved(made);
+    toast('Saved to Recipes', { label: 'Open', run: () => onSaved(made) });
+    onClose();
   };
 
   return (
@@ -229,7 +229,6 @@ function FoundSheet({ recipe, onClose, onSaved }: { recipe: WebRecipe; onClose: 
         ) : (
           <button className="btn primary save" disabled={!made} onClick={save}>
             <span>Save to Recipes</span>
-            <span className="save-sub">You can check the ingredients next</span>
           </button>
         )
       }
@@ -253,7 +252,7 @@ function FoundSheet({ recipe, onClose, onSaved }: { recipe: WebRecipe; onClose: 
       </div>
       {made && (
         <div className="note">
-          {matched} of {lines.length} ingredients matched to UK food data{matched < lines.length ? '; the rest you can pick after saving' : ''}.
+          {matched} of {lines.length} ingredients matched to UK food data{matched < lines.length ? '. You can pick foods for the rest any time from the recipe' : ''}.
         </div>
       )}
       <div className="section-title">Ingredients</div>

@@ -224,3 +224,33 @@ describe('matches that would give badly wrong numbers', () => {
     expect(m('2 x 400g cans black beans drained and rinsed')).toBeUndefined();
   });
 });
+
+describe('vague amounts and recipe-site wording', () => {
+  const g = (l: string) => resolveLine(l, foods);
+  const name = (l: string) => {
+    const id = g(l).ingredient.foodId;
+    return foods.find((f) => f.id === id)?.name;
+  };
+  it('reads describing words before a comma as part of the food', () => {
+    expect(parseLine('3 fat, fresh red chillies, deseeded and thinly shredded')).toMatchObject({ qty: 3, name: 'fat fresh red chillies', note: 'deseeded and thinly shredded' });
+    expect(name('3 fat, fresh red chillies, deseeded')).toMatch(/chilli, red/);
+    expect(g('3 fat, fresh red chillies, deseeded').ingredient.grams).toBe(45);
+  });
+  it('gives knobs, thumbs, bunches and juice a typical weight', () => {
+    expect(name('large knob of ginger')).toBe('Ginger, fresh');
+    expect(g('knob of butter').ingredient.grams).toBe(10);
+    expect(g('thumb-sized piece of ginger').ingredient.grams).toBe(15);
+    expect(g('5cm ginger, peeled').ingredient.grams).toBe(25);
+    expect(g('juice of 2 limes').ingredient.grams).toBe(60);
+    expect(name('zest of 1 lemon')).toBe('Lemon peel');
+    expect(g('small bunch of coriander').ingredient.grams).toBeLessThan(25);
+  });
+  it('matches herbs with "leaves" and spring onions with descriptions', () => {
+    expect(name('small handful mint leaves')).toBe('Mint, fresh');
+    expect(name('bunch spring onions, shredded lengthways')).toMatch(/^Spring onions/);
+  });
+  it('does not ask for a weight for oil for frying', () => {
+    expect(g('sunflower oil, for frying').ingredient.foodId).toBeNull();
+    expect(g('2 tbsp sunflower oil').ingredient.foodId).toBeTruthy();
+  });
+});
