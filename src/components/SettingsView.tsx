@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Icon, Seg, Toggle, toast } from './ui';
+import { PaprikaImportSheet } from './ImportRecipes';
 import { store, useStore } from '../lib/store';
 import { configBakedIn, resetClient, signIn, signOut, supabaseConfig, syncNow } from '../lib/sync';
 import type { Entry, Person, Tracking } from '../lib/types';
@@ -25,6 +26,7 @@ const TARGETS: { key: keyof Omit<Tracking, 'on'>; label: string; unit: string }[
 export function SettingsView({ onFoods }: { onFoods: () => void }) {
   const { settings, device, sync } = useStore();
   const [names, setNames] = useState(settings.names);
+  const [paprika, setPaprika] = useState(false);
   const [url, setUrl] = useState(device.supabaseUrl ?? '');
   const [key, setKey] = useState(device.supabaseKey ?? '');
   const [email, setEmail] = useState('');
@@ -223,7 +225,15 @@ export function SettingsView({ onFoods }: { onFoods: () => void }) {
           <span className="grow" style={{ fontWeight: 600 }}>Restore backup</span>
           <Icon name="upload" size={20} />
         </button>
+        <button className="set-row" onClick={() => setPaprika(true)}>
+          <span className="grow">
+            <div style={{ fontWeight: 600 }}>Import recipes from Paprika</div>
+            <div className="hint">From a .paprikarecipes export. Recipes already imported are skipped.</div>
+          </span>
+          <Icon name="upload" size={20} />
+        </button>
       </div>
+      {paprika && <PaprikaImportSheet onClose={() => setPaprika(false)} />}
       <input ref={backupRef} type="file" accept=".json,application/json" hidden onChange={(e) => { void importBackup(e.target.files?.[0]); e.target.value = ''; }} />
 
 

@@ -3,7 +3,6 @@ import { Icon } from './ui';
 import { WhoSwitch, WhoTag, useView } from './WhoSwitch';
 import { RecipeEditor } from './RecipeEditor';
 import { RecipeView } from './RecipeView';
-import { PaprikaImportSheet } from './ImportRecipes';
 import { useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { perServing, recipeTotals, fmtKcal } from '../lib/nutrition';
@@ -23,7 +22,6 @@ export function RecipesView() {
   const [q, setQ] = useState('');
   const [viewing, setViewing] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [importing, setImporting] = useState(false);
 
   const shown = useMemo(() => {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
@@ -79,9 +77,6 @@ export function RecipesView() {
         </div>
       )}
 
-      <button className="btn small import-link" onClick={() => setImporting(true)}>
-        <Icon name="upload" size={16} /> Import from Paprika
-      </button>
 
       <div className="home-actions">
         <button className="btn primary add" onClick={() => setAdding(true)}>
@@ -91,7 +86,6 @@ export function RecipesView() {
 
       {viewing && <RecipeView id={viewing} onClose={() => setViewing(null)} />}
       {adding && <RecipeEditor onClose={() => setAdding(false)} />}
-      {importing && <PaprikaImportSheet onClose={() => setImporting(false)} />}
     </>
   );
 }
