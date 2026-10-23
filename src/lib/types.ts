@@ -79,6 +79,10 @@ export interface Recipe extends Base {
   title: string;
   owner: Who;
   servings: number;
+  /** times in minutes; total is worked out from prep + cook when not given */
+  prepMins?: number;
+  cookMins?: number;
+  totalMins?: number;
   /** weight of the finished dish, if weighed; portions can then be served by weight */
   cookedWeight?: number;
   ingredients: Ingredient[];

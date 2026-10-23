@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { findUrl } from './lib/recipeWeb';
 import { CalendarView } from './components/CalendarView';
 import { MenusView } from './components/MenusView';
@@ -8,13 +8,22 @@ import { FoodsView } from './components/FoodsView';
 import { SettingsView } from './components/SettingsView';
 import { Icon, ToastHost } from './components/ui';
 import { store, useStore } from './lib/store';
+import { timesFromNotes } from './lib/times';
 
 type Tab = 'calendar' | 'shopping' | 'recipes' | 'menus' | 'foods' | 'settings';
 
 const TITLES: Record<Tab, string> = { calendar: 'Calendar', shopping: 'Shopping list', recipes: 'Recipes', menus: 'Menus', foods: 'Foods', settings: 'Settings' };
 
 export default function App() {
-  const { sync, device, settings, loaded } = useStore();
+  const { sync, device, settings, loaded, recipes } = useStore();
+  // once per start: recipes imported before times had their own place have them in the notes
+  const tidied = useRef(false);
+  useEffect(() => {
+    if (!loaded || tidied.current) return;
+    tidied.current = true;
+    const moved = recipes.map(timesFromNotes).filter((r): r is NonNullable<typeof r> => Boolean(r));
+    if (moved.length) store.put(...moved);
+  }, [loaded, recipes]);
   // a recipe link shared into the app (Android's Share menu opens ./?url=… or ./?text=…)
   const [incoming, setIncoming] = useState<string | undefined>(() => {
     const q = new URLSearchParams(window.location.search);

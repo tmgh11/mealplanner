@@ -763,3 +763,27 @@ button.step:active { background: var(--surface-2); }
 .link-row { display: flex; gap: 8px; align-items: stretch; }
 .link-row .input { flex: 1; min-width: 0; }
 .link-row .btn { flex: none; width: auto; padding: 0 16px; }
+
+/* ---------- Recipe filters and times ---------- */
+.search-row { display: flex; gap: 8px; align-items: stretch; margin: 14px 0 12px; }
+.search-row .search { flex: 1; margin: 0; }
+.filter-btn {
+  position: relative; flex: none; width: 50px; display: grid; place-items: center; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border); color: var(--text); cursor: pointer;
+}
+.filter-btn.on { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.filter-count {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+  background: var(--danger); color: #fff; font-size: 12px; font-weight: 750; display: grid; place-items: center;
+}
+.active-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 12px; }
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer;
+}
+.chip.on { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.chip-n { font-size: 12px; font-weight: 650; opacity: 0.6; }
+.recipe-time { display: inline-flex; align-items: center; gap: 4px; }
+.recipe-time .muted { color: var(--muted); }
+.inline.times .field { min-width: 0; }

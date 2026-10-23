@@ -11,6 +11,7 @@ import { lineFor, toItem } from '../lib/shopping';
 import { kcalPer100Cooked, recipeTotals } from '../lib/nutrition';
 import type { ShopItem } from '../lib/types';
 import { methodSteps } from '../lib/method';
+import { fmtMinutes, totalMinutes } from '../lib/times';
 
 const host = (u: string) => {
   try {
@@ -88,6 +89,12 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
         <div className="recipe-meta">
           <WhoTag who={r.owner} />
           <span>Serves {r.servings}</span>
+          {totalMinutes(r) && (
+            <span className="recipe-time" title={[r.prepMins && `Prep ${fmtMinutes(r.prepMins)}`, r.cookMins && `Cook ${fmtMinutes(r.cookMins)}`].filter(Boolean).join(' · ')}>
+              <Icon name="clock" size={15} /> {fmtMinutes(totalMinutes(r))}
+              {r.prepMins && r.cookMins ? <span className="muted"> ({fmtMinutes(r.prepMins)} prep)</span> : null}
+            </span>
+          )}
           {r.rating ? <span aria-label={`${r.rating} stars`}>{'★'.repeat(r.rating)}</span> : null}
           {r.sourceUrl && (
             <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer">

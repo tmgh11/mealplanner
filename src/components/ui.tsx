@@ -5,7 +5,7 @@ import { isISODate } from '../lib/dates';
 type IconName =
   | 'plus' | 'camera' | 'arrows' | 'repeat' | 'chart' | 'list' | 'settings' | 'close' | 'trash' | 'check'
   | 'left' | 'right' | 'search' | 'swap' | 'upload' | 'download' | 'pause' | 'play' | 'cloud'
-  | 'book' | 'leaf' | 'edit' | 'link' | 'alert' | 'scale' | 'calendar' | 'cart' | 'globe' | 'more' | 'grip' | 'up' | 'down' | 'heading';
+  | 'book' | 'leaf' | 'edit' | 'link' | 'alert' | 'scale' | 'calendar' | 'cart' | 'globe' | 'more' | 'grip' | 'up' | 'down' | 'heading' | 'clock' | 'filter';
 
 const PATHS: Record<IconName, ReactNode> = {
   plus: <path d="M12 5v14M5 12h14" />,
@@ -14,6 +14,8 @@ const PATHS: Record<IconName, ReactNode> = {
   up: <path d="M12 19V5M6 11l6-6 6 6" />,
   down: <path d="M12 5v14M6 13l6 6 6-6" />,
   heading: <path d="M6 5v14M18 5v14M6 12h12" />,
+  clock: <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2" />,
+  filter: <path d="M4 6h16M7 12h10M10 18h4" />,
   camera: (
     <>
       <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.4-2h5.6l1.4 2h1.3A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z" />

@@ -5,6 +5,7 @@
  * this turns them into a recipe.
  */
 import { resolveLine } from './ingredients';
+import { parseMinutes } from './times';
 import type { Food, Person, Recipe, Who } from './types';
 
 export interface WebRecipe {
@@ -14,6 +15,9 @@ export interface WebRecipe {
   servings?: number;
   image?: string;
   tags: string[];
+  prepMins?: number;
+  cookMins?: number;
+  totalMins?: number;
   url: string;
   site?: string;
   description?: string;
@@ -119,6 +123,9 @@ export function webRecipeFrom(blocks: unknown[], url: string): WebRecipe | null 
     ingredients,
     method: steps(r.recipeInstructions).join('\n'),
     servings: servingsOf(r.recipeYield),
+    prepMins: parseMinutes(text(r.prepTime)),
+    cookMins: parseMinutes(text(r.cookTime)),
+    totalMins: parseMinutes(text(r.totalTime)),
     image: firstImage(r.image),
     tags: [...new Set([...cats, ...keywords.slice(0, 3)].map((t) => t.trim()).filter((t) => t && t.length < 30))].slice(0, 5),
     url,
@@ -147,6 +154,9 @@ export function webToRecipe(w: WebRecipe, owner: Who, foods: Food[], me: Person,
     title: w.title,
     owner,
     servings: w.servings ?? 4,
+    prepMins: w.prepMins,
+    cookMins: w.cookMins,
+    totalMins: w.totalMins,
     ingredients: w.ingredients.map((l) => resolveLine(l, foods).ingredient),
     method: w.method,
     notes: w.description,

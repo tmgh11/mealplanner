@@ -13,6 +13,7 @@ import { fmtKcal, kcalPer100Cooked, perServing, recipeTotals } from '../lib/nutr
 import type { Recipe, Who } from '../lib/types';
 import { fetchWebRecipe, FetchProblem } from '../lib/fetchRecipe';
 import { findUrl, webToRecipe } from '../lib/recipeWeb';
+import { fmtMinutes, parseMinutes } from '../lib/times';
 
 function blank(owner: Who): Recipe {
   return { id: newId(), kind: 'recipe', title: '', owner, servings: 2, ingredients: [], method: '', tags: [], updatedAt: 0 };
@@ -236,6 +237,17 @@ export function RecipeEditor({
       <p className="small-print" style={{ marginTop: -8, marginBottom: 14 }}>
         Weigh the finished pot to serve portions by weight; each of you can then weigh your own plate.
       </p>
+      <div className="inline times">
+        <TimeField id="tp" label="Prep" value={r.prepMins} onChange={(prepMins) => set({ prepMins })} />
+        <TimeField id="tc" label="Cook" value={r.cookMins} onChange={(cookMins) => set({ cookMins })} />
+        <TimeField
+          id="tt"
+          label="Total"
+          value={r.totalMins}
+          onChange={(totalMins) => set({ totalMins })}
+          placeholder={r.prepMins || r.cookMins ? fmtMinutes((r.prepMins ?? 0) + (r.cookMins ?? 0)) : 'optional'}
+        />
+      </div>
 
       <div className="section-title" style={{ marginTop: 8 }}>
         Ingredients
@@ -277,5 +289,35 @@ export function RecipeEditor({
 
       {shopItems && <ChooseItemsSheet title="Add to shopping list" items={shopItems} note={`Everything for ${r.title.trim() || 'this recipe'} (serves ${r.servings}).`} onClose={() => setShopItems(null)} />}
     </Sheet>
+  );
+}
+
+/** A time typed as "40", "40 min" or "1 hr 15": kept as minutes, shown as "1 hr 15 min". */
+function TimeField({ id, label, value, onChange, placeholder = 'optional' }: { id: string; label: string; value?: number; onChange: (m?: number) => void; placeholder?: string }) {
+  const [text, setText] = useState(fmtMinutes(value));
+  const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    if (!focused) setText(fmtMinutes(value));
+  }, [value, focused]);
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        className="input"
+        value={text}
+        placeholder={placeholder}
+        onFocus={() => setFocused(true)}
+        onChange={(e) => {
+          setText(e.target.value);
+          onChange(parseMinutes(e.target.value));
+        }}
+        onBlur={() => {
+          setFocused(false);
+          setText(fmtMinutes(parseMinutes(text)));
+        }}
+        aria-label={`${label} time`}
+      />
+    </div>
   );
 }

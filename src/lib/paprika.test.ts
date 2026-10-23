@@ -33,7 +33,8 @@ describe('reading a Paprika export', () => {
       sourceUrl: 'https://www.bbcgoodfood.com/recipes/x', photo: 'data:image/jpeg;base64,aGVsbG8=', method: 'Fry the garlic.\n\nAdd everything.',
     });
     expect(r.notes).toContain('Freezes well');
-    expect(r.notes).toContain('Prep: 10 mins');
+    expect(r.notes).not.toContain('Prep');
+    expect(r.prepMins).toBe(10);
     expect(r.ingredients.map((i) => [i.text, i.heading ?? false, i.foodId === null])).toEqual([
       ['FOR THE SOUP', true, true],
       ['200g red lentils', false, false],

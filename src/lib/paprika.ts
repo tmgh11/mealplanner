@@ -1,3 +1,4 @@
+import { parseMinutes } from './times';
 /**
  * Importing from Paprika. Paprika's "Export → All recipes" makes a .paprikarecipes file: a zip
  * with one .paprikarecipe per recipe, each of which is gzipped JSON. A single exported recipe is
@@ -53,8 +54,7 @@ const clean = (s?: string) => (s ?? '').replace(/\r/g, '').replace(/\n{3,}/g, '\
 
 export function paprikaToRecipe(p: PaprikaRecipe, owner: Who, foods: Food[], me: Person, newId: () => string): Recipe {
   const lines = splitItems(clean(p.ingredients), false);
-  const times = [p.prep_time && `Prep: ${p.prep_time}`, p.cook_time && `Cook: ${p.cook_time}`, p.total_time && `Total: ${p.total_time}`].filter(Boolean).join(' · ');
-  const notes = [clean(p.description), clean(p.notes), times].filter(Boolean).join('\n\n');
+  const notes = [clean(p.description), clean(p.notes)].filter(Boolean).join('\n\n');
   const url = p.source_url?.trim() || (/^https?:\/\//.test(p.source ?? '') ? p.source!.trim() : '');
   return {
     id: newId(),
@@ -62,6 +62,9 @@ export function paprikaToRecipe(p: PaprikaRecipe, owner: Who, foods: Food[], me:
     title: p.name.trim(),
     owner,
     servings: parseServings(p.servings) ?? 4,
+    prepMins: parseMinutes(p.prep_time),
+    cookMins: parseMinutes(p.cook_time),
+    totalMins: parseMinutes(p.total_time),
     ingredients: lines.map((l) => resolveLine(l, foods).ingredient),
     method: clean(p.directions),
     notes: notes || undefined,
