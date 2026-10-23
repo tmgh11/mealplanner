@@ -168,8 +168,26 @@ export interface Menu extends Base {
   createdBy?: Person;
 }
 
-export type Aisle = 'Fruit & veg' | 'Meat & fish' | 'Dairy & eggs' | 'Bakery' | 'Cupboard' | 'Frozen' | 'Drinks' | 'Other';
-export const AISLES: Aisle[] = ['Fruit & veg', 'Meat & fish', 'Dairy & eggs', 'Bakery', 'Cupboard', 'Frozen', 'Drinks', 'Other'];
+/** Supermarket aisles, in roughly the order you'd walk a big UK supermarket. */
+export const AISLES = [
+  'Fruit & veg',
+  'Bakery',
+  'Meat & fish',
+  'Deli & chilled',
+  'Dairy, eggs & cheese',
+  'Pasta, rice & tins',
+  'Herbs, spices & sauces',
+  'Baking',
+  'Breakfast & hot drinks',
+  'Snacks & sweets',
+  'Drinks',
+  'Frozen',
+  'Household & toiletries',
+  'Pet',
+  'Other',
+] as const;
+export type Aisle = (typeof AISLES)[number];
+export const isAisle = (a: string): a is Aisle => (AISLES as readonly string[]).includes(a);
 
 /** Where a shopping item came from. */
 export interface ShopSource {

@@ -7,44 +7,114 @@ import { parseLine } from './parse';
 import { dayLabel, peopleOf } from './plan';
 import type { Lookup } from './plan';
 import type { Aisle, Food, Ingredient, Meal, Person, Recipe, ShopItem, ShopSource, Who } from './types';
-import { AISLES, SLOT_LABELS, visibleIn } from './types';
+import { AISLES, SLOT_LABELS, isAisle, visibleIn } from './types';
 
 // ---------- aisles ----------
 
+/**
+ * Words that put something in an aisle, checked in order, against what the line says and the
+ * food it matched. The first that fits wins, so the more particular come first ("ice cream" is
+ * Frozen before "cream" is dairy; "peanut butter" is a spread before "butter" is dairy).
+ */
+const AISLE_WORDS: [string, RegExp][] = [
+  ['Pet', /\b(cat|cats|dog|dogs|kitten|puppy|pet)\s+(food|litter|treats?|biscuits?|pouches|toys?|bowls?)\b|\b(cat|kitty) litter\b|\blitter\b|\b(whiskas|felix|purina|dreamies|pedigree|sheba|iams|webbox)\b/],
+  ['Toiletries & health', /\b(tooth ?paste|tooth ?brush(es)?|floss|mouthwash|shampoo|conditioner|shower gel|body wash|hand ?wash|soap|deodorant|razors?|shaving|tampons?|sanitary|pads|paracetamol|ibuprofen|plasters?|vitamins?|sun ?cream|moisturiser|lip balm|tissues|toilet (roll|paper)|loo roll|cotton (wool|buds))\b/],
+  ['Household', /\b(kitchen roll|bin bags?|bin liners?|foil|cling ?film|baking (paper|parchment)|washing[- ]up|dishwasher|laundry|detergent|fabric softener|bleach|cleaner|cleaning|sponges?|scourers?|batteries|light ?bulbs?|freezer bags|sandwich bags|zip ?lock|candles|matches|kitchen towel|wipes)\b/],
+  ['Frozen', /\b(frozen|ice cream|ice lolly|ice lollies|sorbet|fish fingers|oven chips|ice cubes)\b/],
+  ['Deli & cooked meats', /\b(ham|salami|chorizo|pepperoni|prosciutto|parma|serrano|pastrami|bresaola|cooked (chicken|turkey|meat)|(chicken|turkey) slices|sliced (chicken|turkey|meat)|sandwich (meat|filler)|cold (meat|cuts)|deli|p[âa]t[ée]|hummus|houmous|olives|coleslaw|scotch eggs?|pork pies?|sausage rolls?|antipasti|cured meat)\b/],
+  ['Chilled & ready meals', /\b(ready meals?|fresh pasta|gnocchi|tortellini|ravioli|pizzas?|dips?|guacamole|tzatziki|tofu|quorn|tempeh|seitan|fresh soup|pastry|filo|puff pastry|shortcrust|quiche)\b/],
+  ['Dairy, eggs & cheese', /\b(oat|almond|soya|soy|rice|cashew) (milk|drink|yogh?urt)\b|\bcoconut (drink|yogh?urt)\b/],
+  ['Tins & jars', /\b(coconut (milk|cream)|canned|tinned|tins?|cans?|(black|borlotti|cannellini|kidney|haricot|pinto|butter|black-eyed|flageolet) beans|chickpeas|in brine|in spring water|tomato pur[ée]e|passata|baked beans|chopped tomatoes|plum tomatoes|pasta sauce|pesto|pickled|gherkins|capers|jarred|sweetcorn|water chestnuts|soups?)\b/],
+  ['World foods', /\b(curry paste|ancho|chill?i[- ]garlic|masa|cornmeal|corn tacos|tacos?|tikka|korma|madras|gochujang|sriracha|miso|tahini|coconut (milk|cream)|fish sauce|soy sauce|oyster sauce|hoisin|teriyaki|sweet chilli|tamarind|harissa|ras el hanout|jerk|enchilada|fajita|taco (shells|kit|seasoning)|refried beans|chipotle|adobo|nori|wasabi|mirin|sambal|naan kit|poppadoms?|chutney)\b/],
+  ['Baking', /\b(flour|baking powder|bicarbonate|yeast|cocoa|vanilla(?! (yogh?urt|ice cream))|icing|sugar(?! snap)|caster|muscovado|chocolate chips|cooking chocolate|cornflour|golden syrup|treacle|desiccated|glac[ée] cherries|sprinkles|food colouring|ground almonds|cake (mix|cases))\b/],
+  ['Cereals & spreads', /\b(cereal|corn ?flakes|muesli|granola|porridge|oats|weetabix|shreddies|bran flakes|jam|marmalade|honey|peanut butter|almond butter|nutella|chocolate spread|marmite|maple syrup|lemon curd)\b/],
+  ['Tea & coffee', /\b(tea|tea ?bags|coffee|espresso|hot chocolate|herbal tea|camomile|chamomile|peppermint tea)\b/],
+  ['Snacks & sweets', /\b(crisps|chocolate|biscuits?|sweets|popcorn|crackers|cream crackers|rice cakes|cereal bars?|flapjacks?|pretzels|nachos|tortilla chips|doritos|haribo|mints|chewing gum)\b/],
+  ['Herbs, spices & stock', /\b(stock( cubes| pots)?|bouillon|gravy|oxo|seasoning|spice mix|dried (herbs|oregano|thyme|basil|parsley|mint)|ground (cumin|coriander|ginger|cinnamon|turmeric)|paprika|cumin|turmeric|cinnamon|nutmeg|(ground|whole) cloves|sumac|onion powder|garlic powder|cajun|za.atar|five spice|smoked paprika|cayenne|bay leaves|cardamom|chilli (flakes|powder)|garam masala|curry powder|mixed (herbs|spice)|peppercorns|black pepper|salt)\b/],
+  ['Nuts, seeds & dried fruit', /\b(nuts|almonds|cashews|walnuts|pecans|pistachios|hazelnuts|peanuts|seeds|raisins|sultanas|currants|dried (fruit|apricots|mango|cranberries)|dates|prunes|goji)\b/],
+  ['Beer, wine & spirits', /\b(wine(?! vinegar)|beer|lager|ale|cider|prosecco|champagne|gin|vodka|rum|whisky|whiskey|tequila|spirits|port|sherry)\b/],
+  ['Soft drinks', /\b((?<!(lemon|lime) )juice|(?<!(butternut|acorn|spaghetti|summer|winter) )squash|cordial|cola|coke|lemonade|fizzy|sparkling water|mineral water|bottled water|tonic|smoothies?|energy drinks?|kombucha)\b/],
+  ['Oils, vinegars & condiments', /\b(oil|vinegar|ketchup|mayo|mayonnaise|mustard|salad cream|dressing|relish|brown sauce|hot sauce|tabasco|worcestershire|bbq sauce|barbecue sauce)\b/],
+  ['Pasta, rice & grains', /\b(pasta|spaghetti|penne|fusilli|linguine|tagliatelle|lasagne|macaroni|orzo|noodles|rice|couscous|quinoa|bulgur|lentils|split peas|pearl barley|polenta|risotto)\b/],
+  ['Bakery', /\b(bread|loaf|rolls?|baguettes?|ciabatta|sourdough|croissants?|wraps?|tortillas?|pittas?|pitta bread|bagels?|crumpets?|naans?|brioche|muffins?|teacakes?|scones?|buns?|cakes?|doughnuts?|pastries)\b/],
+  ['Dairy, eggs & cheese', /\b(milk|butter|yogh?urt|cream|cr[èe]me fra[îi]che|eggs?|cheese|cheddar|mozzarella|parmesan|feta|halloumi|ricotta|mascarpone|kefir|custard|fromage frais)\b/],
+  ['Fish & seafood', /\b(salmon|cod|haddock|tuna|prawns?|shrimp|mackerel|sea bass|trout|sardines|anchovies|mussels|squid|crab|scallops|fish)\b/],
+  ['Meat & poultry', /\b(chicken|turkey|beef|steak|mince|pork|lamb|bacon|lardons|sausages?|gammon|duck|venison|burgers?|meatballs|chops)\b/],
+  ['Fruit & veg', /\b(stir[- ]fry (mix|veg)|onions?|shallots?|tomato(es)?|peppers?(?! ?(sauce|corns))|bean ?sprouts|lemongrass|potato(es)?|carrots?|parsnips?|courgettes?|aubergines?|broccoli|cauliflower|cabbage|squash|pumpkin|beetroot|radish(es)?|asparagus|peas|green beans|sweet potato(es)?|spinach|kale|leeks?|celery|cucumbers?|mushrooms?|garlic|ginger|chill?ies|avocados?|lemons?|limes?|oranges?|apples?|bananas?|berries|grapes|fresh (herbs|basil|coriander|parsley|mint|dill|thyme|rosemary)|salad|lettuce)\b/],
+];
+
+/** The finer kinds of product above, grouped into the aisles the list shows. */
+const AISLE_OF: Record<string, Aisle> = {
+  'Fruit & veg': 'Fruit & veg',
+  Bakery: 'Bakery',
+  'Meat & poultry': 'Meat & fish',
+  'Fish & seafood': 'Meat & fish',
+  'Deli & cooked meats': 'Deli & chilled',
+  'Chilled & ready meals': 'Deli & chilled',
+  'Dairy, eggs & cheese': 'Dairy, eggs & cheese',
+  'Pasta, rice & grains': 'Pasta, rice & tins',
+  'Tins & jars': 'Pasta, rice & tins',
+  'World foods': 'Herbs, spices & sauces',
+  'Herbs, spices & stock': 'Herbs, spices & sauces',
+  'Oils, vinegars & condiments': 'Herbs, spices & sauces',
+  Baking: 'Baking',
+  'Nuts, seeds & dried fruit': 'Baking',
+  'Cereals & spreads': 'Breakfast & hot drinks',
+  'Tea & coffee': 'Breakfast & hot drinks',
+  'Snacks & sweets': 'Snacks & sweets',
+  'Soft drinks': 'Drinks',
+  'Beer, wine & spirits': 'Drinks',
+  Frozen: 'Frozen',
+  Household: 'Household & toiletries',
+  'Toiletries & health': 'Household & toiletries',
+  Pet: 'Pet',
+  Other: 'Other',
+};
+
+/** Which aisle a food lives in, from what the line says and the food it was matched to. */
 export function aisleOf(food: Food | undefined, name = ''): Aisle {
-  const n = `${food?.name ?? ''} ${name}`.toLowerCase();
-  if (/\bfrozen\b/.test(n)) return 'Frozen';
-  if (!food) {
-    if (/\b(milk|yogh?urt|cheese|butter|cream|eggs?)\b/.test(n)) return 'Dairy & eggs';
-    if (/\b(bread|toast|bread rolls?|wraps?|bagels?|pitta|crumpets?)\b/.test(n)) return 'Bakery';
-    return 'Other';
-  }
-  const g = food.group;
-  if (/\b(canned|tinned|in brine|in tomato sauce|dried|pickled)\b/.test(n) && g !== 'Dairy') return 'Cupboard';
-  if (/juice|smoothie/.test(n)) return 'Drinks';
-  switch (g) {
+  return AISLE_OF[kindOf(food, name)] ?? 'Other';
+}
+
+function kindOf(food: Food | undefined, name: string): string {
+  const typed = name.toLowerCase();
+  // what the line says comes first ("sandwich meat" is deli even if it matched a raw meat)
+  for (const [aisle, re] of AISLE_WORDS) if (re.test(typed)) return aisle;
+  if (!food) return 'Other';
+  const n = food.name.toLowerCase();
+  if (/\b(canned|in brine|in tomato sauce|in tomato juice|in oil)\b/.test(n) && !/^(cheese|milk|cream)/.test(n)) return 'Tins & jars';
+  for (const [aisle, re] of AISLE_WORDS) if (re.test(n)) return aisle;
+  switch (food.group) {
     case 'Vegetables':
     case 'Fruit':
-      return 'Fruit & veg';
+      return /\bdried\b/.test(n) ? 'Nuts, seeds & dried fruit' : 'Fruit & veg';
     case 'Meat and poultry':
+      return 'Meat & poultry';
     case 'Fish':
-      return 'Meat & fish';
+      return 'Fish & seafood';
     case 'Dairy':
     case 'Eggs':
-      return 'Dairy & eggs';
+      return 'Dairy, eggs & cheese';
     case 'Cereals':
-      return /^(bread|rolls?|bagels?|wraps?|tortilla|pitta|croissants?|crumpets?|muffins?|rusks?|chapati|naan)/i.test(food.name) ? 'Bakery' : 'Cupboard';
+      return 'Pasta, rice & grains';
     case 'Herbs and spices':
-      return /\bfresh\b/.test(n) ? 'Fruit & veg' : 'Cupboard';
+      return /\bfresh\b/.test(n) ? 'Fruit & veg' : 'Herbs, spices & stock';
     case 'Fats and oils':
-      return /^(butter|spread|margarine|ghee)/i.test(food.name) ? 'Dairy & eggs' : 'Cupboard';
+      return /^(butter|spread|margarine|ghee|fat spread)/.test(n) ? 'Dairy, eggs & cheese' : 'Oils, vinegars & condiments';
+    case 'Nuts and seeds':
+      return 'Nuts, seeds & dried fruit';
+    case 'Sweets and snacks':
+      return 'Snacks & sweets';
     case 'Drinks':
+      return 'Soft drinks';
     case 'Alcohol':
-      return 'Drinks';
+      return 'Beer, wine & spirits';
+    case 'Soups, sauces and misc':
+      return 'Tins & jars';
     case 'Our foods':
-      return aisleOf(undefined, food.name) === 'Other' ? 'Other' : aisleOf(undefined, food.name);
+      return 'Other';
     default:
-      return 'Cupboard';
+      return 'Other';
   }
 }
 
@@ -262,7 +332,8 @@ function buildGroups(items: ShopItem[]): ShopGroup[] {
 
 /** Still to buy: lines for the same food shown as one, by aisle in shop order. */
 export function groupShopping(items: ShopItem[]): { aisle: Aisle; groups: ShopGroup[] }[] {
-  const groups = buildGroups(items.filter((i) => !i.checked));
+  // lines saved under an aisle that no longer exists are sorted again from their name
+  const groups = buildGroups(items.filter((i) => !i.checked).map((i) => (isAisle(i.aisle) ? i : { ...i, aisle: aisleOf(undefined, i.name) })));
   return AISLES.map((aisle) => ({ aisle, groups: groups.filter((g) => g.aisle === aisle) })).filter((a) => a.groups.length);
 }
 

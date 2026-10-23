@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { HoldButton, Icon, Seg, Sheet, toast } from './ui';
 import { WhoSwitch } from './WhoSwitch';
 import { newId, store, useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { addDays, fromISO, isISODate, today } from '../lib/dates';
 import { resolveLine } from '../lib/ingredients';
-import { checkedGroups, fmtAmount, parseAmount, typedName, groupShopping, lineFor, planFromCalendar, toItem, type ShopGroup } from '../lib/shopping';
+import { aisleOf, checkedGroups, fmtAmount, parseAmount, typedName, groupShopping, lineFor, planFromCalendar, toItem, type ShopGroup } from '../lib/shopping';
 import { peopleOf } from '../lib/plan';
-import { AISLES, type Aisle, type Person, type ShopItem, type Who } from '../lib/types';
+import { AISLES, isAisle, type Aisle, type Person, type ShopItem, type Who } from '../lib/types';
 
 /** Lines Tom added or that are for Tom's meals show in Tom's view; Both shows everything. */
 const shows = (i: ShopItem, view: Who) =>
@@ -23,6 +23,12 @@ export function ShoppingView() {
   const [fromCal, setFromCal] = useState(false);
 
   const mine = useMemo(() => shopping.filter((i) => shows(i, view)), [shopping, view]);
+  // lines saved under the old, broader aisles move to the new ones (once the food list is in)
+  useEffect(() => {
+    if (!foods.ready) return;
+    const old = shopping.filter((i) => !isAisle(i.aisle));
+    if (old.length) store.put(...old.map((i) => ({ ...i, aisle: aisleOf(i.foodId ? foods.get(i.foodId) : undefined, i.name) })));
+  }, [foods.ready, shopping, foods]);
   const aisles = useMemo(() => groupShopping(mine), [mine]);
   const basket = useMemo(() => checkedGroups(mine), [mine]);
   const toBuy = aisles.reduce((n, a) => n + a.groups.length, 0);

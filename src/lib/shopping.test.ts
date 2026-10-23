@@ -25,15 +25,38 @@ describe('aisles', () => {
   it('sorts foods into supermarket aisles', () => {
     expect(aisleOf(food('Onions, raw'))).toBe('Fruit & veg');
     expect(aisleOf(food('Chicken, light meat, raw'))).toBe('Meat & fish');
-    expect(aisleOf(food('Cheese, cottage, plain'))).toBe('Dairy & eggs');
-    expect(aisleOf(food('Eggs, chicken, whole, raw'))).toBe('Dairy & eggs');
-    expect(aisleOf(food('Lentils, red, split, dried, raw'))).toBe('Cupboard');
-    expect(aisleOf(food('Oil, olive'))).toBe('Cupboard');
+    expect(aisleOf(food('Cheese, cottage, plain'))).toBe('Dairy, eggs & cheese');
+    expect(aisleOf(food('Eggs, chicken, whole, raw'))).toBe('Dairy, eggs & cheese');
+    expect(aisleOf(food('Lentils, red, split, dried, raw'))).toBe('Pasta, rice & tins');
+    expect(aisleOf(food('Oil, olive'))).toBe('Herbs, spices & sauces');
     expect(aisleOf(food('Bread, wholemeal, average'))).toBe('Bakery');
-    expect(aisleOf(food('Tuna, canned in brine, drained'))).toBe('Cupboard');
-    expect(aisleOf(undefined, 'oat milk')).toBe('Dairy & eggs');
-    expect(aisleOf(undefined, 'kitchen roll')).toBe('Other');
+    expect(aisleOf(food('Tuna, canned in brine, drained'))).toBe('Pasta, rice & tins');
+    expect(aisleOf(undefined, 'oat milk')).toBe('Dairy, eggs & cheese');
+    expect(aisleOf(undefined, 'kitchen roll')).toBe('Household & toiletries');
   });
+  it.each([
+    ['sandwich meat', 'Deli & chilled'],
+    ['cooked chicken', 'Deli & chilled'],
+    ['ham', 'Deli & chilled'],
+    ['cat food', 'Pet'],
+    ['cat litter', 'Pet'],
+    ['ice cream', 'Frozen'],
+    ['peanut butter', 'Breakfast & hot drinks'],
+    ['hot chocolate', 'Breakfast & hot drinks'],
+    ['dark chocolate', 'Snacks & sweets'],
+    ['gluten free bread', 'Bakery'],
+    ['gluten free pasta', 'Pasta, rice & tins'],
+    ['coconut milk', 'Pasta, rice & tins'],
+    ['soy sauce', 'Herbs, spices & sauces'],
+    ['chicken stock cubes', 'Herbs, spices & sauces'],
+    ['olive oil', 'Herbs, spices & sauces'],
+    ['toothpaste', 'Household & toiletries'],
+    ['bin bags', 'Household & toiletries'],
+    ['sugar snap peas', 'Fruit & veg'],
+    ['salad cream', 'Herbs, spices & sauces'],
+    ['red wine', 'Drinks'],
+    ['tofu', 'Deli & chilled'],
+  ])('%s → %s', (name, aisle) => expect(aisleOf(undefined, name)).toBe(aisle));
 });
 
 describe('lines from ingredients', () => {
@@ -180,4 +203,20 @@ describe('typed items keep their wording', () => {
     ['500g beef mince (lean)', 'Beef mince (lean)'],
     ['milk', 'Milk'],
   ])('%s → %s', (t, want) => expect(typedName(t)).toBe(want));
+});
+
+describe('aisles: things that tripped up the first version', () => {
+  it.each([
+    ['butternut squash', 'Fruit & veg'],
+    ['orange squash', 'Drinks'],
+    ['lemon juice', 'Fruit & veg'],
+    ['orange juice', 'Drinks'],
+    ['rice wine vinegar', 'Herbs, spices & sauces'],
+    ['garlic cloves', 'Fruit & veg'],
+    ['black beans', 'Pasta, rice & tins'],
+    ['cumin seeds', 'Herbs, spices & sauces'],
+    ['sesame seeds', 'Baking'],
+    ['black peppercorns', 'Herbs, spices & sauces'],
+    ['red peppers', 'Fruit & veg'],
+  ])('%s → %s', (name, aisle) => expect(aisleOf(undefined, name)).toBe(aisle));
 });
