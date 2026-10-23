@@ -787,3 +787,5 @@ button.step:active { background: var(--surface-2); }
 .recipe-time { display: inline-flex; align-items: center; gap: 4px; }
 .recipe-time .muted { color: var(--muted); }
 .inline.times .field { min-width: 0; }
+.amount-input { flex: none; width: 92px; min-height: 40px; padding: 8px 10px; text-align: right; font-weight: 650; font-variant-numeric: tabular-nums; }
+.amount-input.bad { box-shadow: 0 0 0 2px var(--danger); }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aisleOf, checkedGroups, fmtAmount, groupShopping, lineFor, linesForMeal, planFromCalendar, recipeFactor, shopName, toItem } from './shopping';
+import { typedName, parseAmount, aisleOf, checkedGroups, fmtAmount, groupShopping, lineFor, linesForMeal, planFromCalendar, recipeFactor, shopName, toItem } from './shopping';
 import { buildFoods, type CofidRow } from './foods';
 import { resolveLine } from './ingredients';
 import type { Meal, Recipe, ShopItem } from './types';
@@ -148,4 +148,36 @@ describe('shopping names keep product names', () => {
   ])('%s → %s', (text, want) => {
     expect(shopName(text)).toBe(want);
   });
+});
+
+describe('typing an amount on the list', () => {
+  it.each([
+    ['3', { qty: 3, unit: 'each' }],
+    ['200g', { grams: 200 }],
+    ['1.5 kg', { grams: 1500 }],
+    ['2 tins', { qty: 2, unit: 'tin' }],
+    ['500 ml', { qty: 500, unit: 'ml' }],
+    ['1 l', { qty: 1000, unit: 'ml' }],
+    ['4 cloves', { qty: 4, unit: 'clove' }],
+  ])('%s', (t, want) => expect(parseAmount(t)).toMatchObject(want));
+  it('empty clears it; nonsense is refused', () => {
+    expect(parseAmount('')).toEqual({ grams: undefined, qty: undefined, unit: undefined });
+    expect(parseAmount('lots')).toBeNull();
+    expect(parseAmount('3 apples')).toBeNull();
+  });
+  it('reads back what the list shows', () => {
+    for (const i of [{ qty: 3, unit: 'each' }, { grams: 1100 }, { qty: 2, unit: 'tin' }, { qty: 1500, unit: 'ml' }]) {
+      expect(fmtAmount([parseAmount(fmtAmount([i]))!])).toBe(fmtAmount([i]));
+    }
+  });
+});
+
+describe('typed items keep their wording', () => {
+  it.each([
+    ['breakfast for mum and dad', 'Breakfast for mum and dad'],
+    ['3 tomatoes', 'Tomatoes'],
+    ['2 tins chopped tomatoes, drained', 'Chopped tomatoes, drained'],
+    ['500g beef mince (lean)', 'Beef mince (lean)'],
+    ['milk', 'Milk'],
+  ])('%s → %s', (t, want) => expect(typedName(t)).toBe(want));
 });

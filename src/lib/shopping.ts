@@ -268,3 +268,30 @@ export function groupShopping(items: ShopItem[]): { aisle: Aisle; groups: ShopGr
 
 /** In the basket: ticked lines, grouped the same way. */
 export const checkedGroups = (items: ShopItem[]): ShopGroup[] => buildGroups(items.filter((i) => i.checked));
+
+/**
+ * An amount typed on the shopping list ("3", "200g", "1.5 kg", "2 tins", "500 ml") → the fields
+ * a shopping line keeps. Empty means no amount. Null if it can't be read.
+ */
+export function parseAmount(text: string): Pick<ShopItem, 'grams' | 'qty' | 'unit'> | null {
+  const t = text.trim();
+  if (!t) return { grams: undefined, qty: undefined, unit: undefined };
+  const p = parseLine(`${t} x`);
+  if (p.qty == null || !(p.qty > 0) || (p.name && p.name !== 'x')) return null;
+  const q = Math.round(p.qty * 100) / 100;
+  const w: Record<string, number> = { g: 1, kg: 1000, oz: 28.35, lb: 453.6 };
+  if (p.unit && w[p.unit]) return { grams: Math.round(q * w[p.unit] * 10) / 10, qty: undefined, unit: undefined };
+  if (p.unit && ML[p.unit]) return { grams: undefined, qty: q * ML[p.unit], unit: 'ml' };
+  return { grams: undefined, qty: q, unit: p.unit && !['large', 'medium', 'small'].includes(p.unit) ? p.unit : 'each' };
+}
+
+/** What someone typed, minus the amount at the front: "2 tins chopped tomatoes, drained" → "Chopped tomatoes, drained". */
+export function typedName(t: string): string {
+  const p = parseLine(t);
+  let name = t.trim();
+  if (p.qty != null && p.name) {
+    const at = name.toLowerCase().indexOf(p.name.toLowerCase().split(/\s+/)[0]);
+    if (at > 0) name = name.slice(at);
+  }
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}

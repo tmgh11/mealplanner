@@ -5,7 +5,7 @@ import { newId, store, useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { addDays, fromISO, isISODate, today } from '../lib/dates';
 import { resolveLine } from '../lib/ingredients';
-import { checkedGroups, fmtAmount, groupShopping, lineFor, planFromCalendar, toItem, type ShopGroup } from '../lib/shopping';
+import { checkedGroups, fmtAmount, parseAmount, typedName, groupShopping, lineFor, planFromCalendar, toItem, type ShopGroup } from '../lib/shopping';
 import { peopleOf } from '../lib/plan';
 import { AISLES, type Aisle, type Person, type ShopItem, type Who } from '../lib/types';
 
@@ -33,8 +33,10 @@ export function ShoppingView() {
     const r = foods.ready ? resolveLine(t, foods.foods) : null;
     const food = r?.ingredient.foodId ? foods.get(r.ingredient.foodId) : undefined;
     const line = r ? lineFor(r.ingredient, 1, food) : null;
-    // typed items keep the words as typed; a matched food only decides the aisle and grouping
-    const item = toItem(line ?? { name: t, aisle: 'Other' }, undefined, device.me, newId(), Date.now());
+    // typed items keep the words exactly as typed (only a leading amount like "3" or "2 tins" is
+    // taken off, as the amount); a matched food only decides the aisle and grouping
+    const name = typedName(t);
+    const item = toItem(line ? { ...line, name } : { name, aisle: 'Other' }, undefined, device.me, newId(), Date.now());
     store.put(item);
     setText('');
   };
@@ -158,10 +160,15 @@ function GroupSheet({ group, onClose }: { group: ShopGroup; onClose: () => void 
   const items = shopping.filter((i) => group.items.some((g) => g.id === i.id));
   const [name, setName] = useState(group.name);
   const [aisle, setAisle] = useState<Aisle>(group.aisle);
+  // amounts being edited, by line
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const amountOf = (i: ShopItem) => amounts[i.id] ?? fmtAmount([i]);
+  const bad = items.filter((i) => amounts[i.id] != null && !parseAmount(amounts[i.id]));
 
   const save = () => {
+    if (bad.length) return toast('Use an amount like 3, 200g, 1.5 kg or 2 tins');
     const n = name.trim() || group.name;
-    store.put(...items.map((i) => ({ ...i, name: n, aisle })));
+    store.put(...items.map((i) => ({ ...i, name: n, aisle, ...(amounts[i.id] != null ? parseAmount(amounts[i.id]) : {}) })));
     onClose();
   };
   const remove = (list: ShopItem[]) => {
@@ -174,6 +181,8 @@ function GroupSheet({ group, onClose }: { group: ShopGroup; onClose: () => void 
     <Sheet
       title={group.name}
       onClose={onClose}
+      dirty={Object.keys(amounts).length > 0 || name !== group.name || aisle !== group.aisle}
+      discardPrompt="Throw away your changes to this item?"
       footer={
         <div className="btn-row">
           <button className="btn delete" onClick={() => remove(items)} aria-label="Remove from list">
@@ -184,19 +193,35 @@ function GroupSheet({ group, onClose }: { group: ShopGroup; onClose: () => void 
       }
     >
       <p className="text-2" style={{ marginTop: 0, fontSize: 14 }}>
-        {fmtAmount(items) || 'No amount'} in total{items.length > 1 ? `, from ${items.length} places` : ''}.
+        {fmtAmount(items.map((i) => (amounts[i.id] != null ? { ...i, ...(parseAmount(amounts[i.id]) ?? {}) } : i))) || 'No amount'} in total
+        {items.length > 1 ? `, from ${items.length} places` : ''}. Tap an amount to change it.
       </p>
       <div className="card set-group">
         {items.map((i) => (
           <div key={i.id} className="set-row" style={{ alignItems: 'flex-start' }}>
             <span className={`who-dot ${i.addedBy}`} style={{ marginTop: 7 }} />
             <span className="grow">
-              <div style={{ fontWeight: 600 }}>{i.source?.label ?? 'Added by hand'}</div>
-              <div className="hint">
-                {fmtAmount([i]) || 'no amount'} · added by {settings.names[i.addedBy]}
-                {i.source?.forWho ? ` · for ${i.source.forWho === 'both' ? 'both of you' : settings.names[i.source.forWho]}` : ''}
-              </div>
+              {i.source ? (
+                <>
+                  <div style={{ fontWeight: 600 }}>{i.source.label}</div>
+                  <div className="hint">
+                    Added by {settings.names[i.addedBy]}
+                    {i.source.forWho ? ` · for ${i.source.forWho === 'both' ? 'both of you' : settings.names[i.source.forWho]}` : ''}
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontWeight: 600, paddingTop: 8 }}>Added by {settings.names[i.addedBy]}</div>
+              )}
             </span>
+            <input
+              className={`input amount-input${bad.includes(i) ? ' bad' : ''}`}
+              value={amountOf(i)}
+              placeholder="amount"
+              onChange={(e) => setAmounts({ ...amounts, [i.id]: e.target.value })}
+              aria-label={`Amount for ${i.source?.label ?? 'this line'}`}
+              inputMode="text"
+              autoCapitalize="off"
+            />
             {items.length > 1 && (
               <button className="icon-btn small" onClick={() => remove([i])} aria-label="Remove this part">
                 <Icon name="close" size={14} />
@@ -358,3 +383,4 @@ export function ChooseItemsSheet({ title, items, note, onClose, onAdded }: { tit
     </Sheet>
   );
 }
+
