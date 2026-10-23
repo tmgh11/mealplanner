@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Icon } from './ui';
 import { WhoSwitch, WhoTag, useView } from './WhoSwitch';
 import { RecipeEditor } from './RecipeEditor';
@@ -14,14 +14,22 @@ export function useTracking() {
   return settings.tracking[device.me]?.on ?? false;
 }
 
-export function RecipesView() {
+export function RecipesView({ incoming, onIncomingUsed }: { incoming?: string; onIncomingUsed?: () => void } = {}) {
   const { recipes } = useStore();
   const view = useView();
   const foods = useFoods();
   const tracking = useTracking();
   const [q, setQ] = useState('');
   const [viewing, setViewing] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState<{ link?: string } | null>(null);
+  // a recipe link shared into the app: start a new recipe and read it
+  useEffect(() => {
+    if (incoming) {
+      setAdding({ link: incoming });
+      onIncomingUsed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incoming]);
 
   const shown = useMemo(() => {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
@@ -79,13 +87,22 @@ export function RecipesView() {
 
 
       <div className="home-actions">
-        <button className="btn primary add" onClick={() => setAdding(true)}>
+        <button className="btn primary add" onClick={() => setAdding({})}>
           <Icon name="plus" size={22} stroke={2.4} /> Add recipe
         </button>
       </div>
 
       {viewing && <RecipeView id={viewing} onClose={() => setViewing(null)} />}
-      {adding && <RecipeEditor onClose={() => setAdding(false)} />}
+      {adding && (
+        <RecipeEditor
+          link={adding.link}
+          onClose={() => setAdding(null)}
+          onOpenOther={(r) => {
+            setAdding(null);
+            setViewing(r.id);
+          }}
+        />
+      )}
     </>
   );
 }

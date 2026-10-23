@@ -10,6 +10,7 @@ import { useFoods } from '../lib/useFoods';
 import { lineFor, toItem } from '../lib/shopping';
 import { kcalPer100Cooked, recipeTotals } from '../lib/nutrition';
 import type { ShopItem } from '../lib/types';
+import { methodSteps } from '../lib/method';
 
 const host = (u: string) => {
   try {
@@ -163,14 +164,4 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
       {shopItems && <ChooseItemsSheet title="Add to shopping list" items={shopItems} note={`Everything for ${r.title || 'this recipe'} (serves ${r.servings}).`} onClose={() => setShopItems(null)} />}
     </>
   );
-}
-
-/** Method text → numbered steps, with "For the sauce:" lines as headings. */
-export function methodSteps(method: string): { text: string; heading?: boolean; n?: number }[] {
-  let n = 0;
-  return method
-    .split(/\n+/)
-    .map((l) => l.trim().replace(/^(step\s*)?\d+[.):]\s*/i, ''))
-    .filter(Boolean)
-    .map((text) => (text.endsWith(':') && text.length <= 50 ? { text: text.slice(0, -1), heading: true } : { text, n: ++n }));
 }

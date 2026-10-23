@@ -10,7 +10,7 @@ Recipes, meals and shopping for Tom and Nuria, built like [Billsplit](https://gi
 - **Shopping list:** one list for both of you, grouped by supermarket aisle, with tick-off that syncs live. Add everything for a run of days on the calendar (for Tom, Nuria or both; amounts scaled to who's eating, leftovers and notes skipped, meals already on the list not added twice), add a recipe's ingredients from its page, or type items in. The same food from several meals shows as one line with the total ("Chicken 1.1 kg"); tap it to see which meals it's for and who added it. Ticked items go to "In the basket" and can be cleared with Undo. "Clear the whole list…" at the bottom needs a press-and-hold, so it can't happen by accident (and still has Undo).
 - **Recipes:** tap a recipe to read it (photo, ingredients, numbered method); editing, deleting and adding to the shopping list sit behind the ⋯ button. Ingredients in grams, marked Tom's, Nuria's or ours. Paste ingredients one per line, or Nuria-style comma lists. Each line is matched to a food and turned into grams; "4 cloves" or "1 tin" use a typical weight, and the app says when it has.
 - **Import from Paprika:** Settings → Your data → Import recipes from Paprika reads a `.paprikarecipes` export: photos, categories (as tags), ratings, notes and source links come across, and ingredients are matched to foods. Recipes already imported are skipped.
-- **Browser:** paste a recipe link (or, on Android, Share → Meal Planner from Chrome) and the app reads the recipe off the page, matches the ingredients and lets you check before saving. Typing words instead searches the web. Needs the one-off "Recipe reader" step below.
+- **Recipes from websites:** Recipes → Add recipe, paste the recipe's link at the top and press Get recipe: the form fills itself in (name, photo, servings, ingredients matched to foods, method) for you to check and save. On Android you can also Share → Meal Planner from Chrome. Needs the one-off "Recipe reader" step below.
 - **UK food data:** 2,886 foods from the government's CoFID 2021 dataset, with separate raw, dried and cooked entries. The app prefers raw and flags foods where raw versus cooked matters (pasta, rice, lentils, meat).
 - **Your own values win:** correct any food's values (e.g. from a packet label) or add foods the UK data lacks (gluten-free bread, oat milk). The original values are kept, and you can reset.
 - **Nutrition is opt-in per person:** nobody sees numbers unless they switch tracking on in Settings.
@@ -29,7 +29,7 @@ Use a **new** project, separate from Billsplit's.
 4. Go to **Authentication → Sign In / Providers** and turn **off** "Allow new users to sign up".
 5. Copy the **Project URL** (`https://<project-ref>.supabase.co`) and the **publishable key** (`sb_publishable_…`) from the **Connect** button. The key is designed to be public: row-level security means only your two signed-in accounts can read or write anything.
 
-6. **Recipe reader** (for the Browser): go to **Edge Functions → Deploy a new function → Via Editor**. Name it `fetch-recipe`, replace the example code with the whole of [`supabase/functions/fetch-recipe/index.ts`](supabase/functions/fetch-recipe/index.ts), and press **Deploy**. Leave "Verify JWT" on, so only your signed-in accounts can use it. (Phones can't read other websites directly, so this small function fetches the page for the app.)
+6. **Recipe reader** (for recipes from websites): go to **Edge Functions → Deploy a new function → Via Editor**. Name it `fetch-recipe`, replace the example code with the whole of [`supabase/functions/fetch-recipe/index.ts`](supabase/functions/fetch-recipe/index.ts), and press **Deploy**. Leave "Verify JWT" on, so only your signed-in accounts can use it. (Phones can't read other websites directly, so this small function fetches the page for the app.)
 
 > Free Supabase projects pause after about a week with no activity. If that happens, press **Resume project** in the dashboard. The app keeps working offline on each phone in the meantime and syncs once the project is back.
 
@@ -46,7 +46,7 @@ The app lives at **https://mealplanner.tom1609.workers.dev**, its own address, s
 ## 3. Install on your phones
 
 - **iPhone (Safari):** open the site, then tap **Share → Add to Home Screen**.
-- **Android (Chrome):** open the site, then tap **⋮ → Install app**. Once installed, Meal Planner appears in Chrome's **Share** menu for sending recipe pages to the Browser (it can take a day for Chrome to pick this up after an update).
+- **Android (Chrome):** open the site, then tap **⋮ → Install app**. Once installed, Meal Planner appears in Chrome's **Share** menu for sending recipe pages straight into a new recipe (it can take a day for Chrome to pick this up after an update).
 
 Open **https://mealplanner.tom1609.workers.dev** to install. On first open, pick whose phone it is. Then sign in under **Settings → Sync between phones** with that person's email and password.
 

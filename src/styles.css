@@ -677,7 +677,7 @@ textarea.input { resize: vertical; line-height: 1.4; }
   flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); color: var(--text-2);
   font-size: 13px; font-weight: 700; display: grid; place-items: center; margin-top: 1px;
 }
-.step p { margin: 0; font-size: 16px; line-height: 1.5; }
+.step p { margin: 0; font-size: 16px; line-height: 1.5; white-space: pre-line; }
 .read-notes { margin: 0 0 16px; font-size: 15px; line-height: 1.5; color: var(--text-2); white-space: pre-wrap; }
 .browser-hint { margin: 4px 4px 0; }
 
@@ -759,3 +759,7 @@ button.step:active { background: var(--surface-2); }
 .week-sub { display: flex; align-items: center; justify-content: center; height: 22px; }
 .week-sub .link-btn { min-height: 0; height: 22px; padding: 0 4px; position: relative; }
 .week-sub .link-btn::after { content: ''; position: absolute; inset: -11px -8px; }
+.link-field { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+.link-row { display: flex; gap: 8px; align-items: stretch; }
+.link-row .input { flex: 1; min-width: 0; }
+.link-row .btn { flex: none; width: auto; padding: 0 16px; }

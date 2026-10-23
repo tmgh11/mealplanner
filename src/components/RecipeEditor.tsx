@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Icon, Seg, Sheet, toast } from './ui';
 import { IngredientsEditor } from './IngredientsEditor';
 import { ChooseItemsSheet } from './ShoppingView';
@@ -11,6 +11,8 @@ import type { ShopItem } from '../lib/types';
 import { useFoods } from '../lib/useFoods';
 import { fmtKcal, kcalPer100Cooked, perServing, recipeTotals } from '../lib/nutrition';
 import type { Recipe, Who } from '../lib/types';
+import { fetchWebRecipe, FetchProblem } from '../lib/fetchRecipe';
+import { findUrl, webToRecipe } from '../lib/recipeWeb';
 
 function blank(owner: Who): Recipe {
   return { id: newId(), kind: 'recipe', title: '', owner, servings: 2, ingredients: [], method: '', tags: [], updatedAt: 0 };
@@ -21,17 +23,61 @@ const num = (s: string) => {
   return s.trim() && Number.isFinite(n) && n > 0 ? n : undefined;
 };
 
-export function RecipeEditor({ initial, draft, onClose }: { initial?: Recipe; draft?: Recipe; onClose: () => void }) {
-  const { settings, device } = useStore();
+export function RecipeEditor({
+  initial,
+  draft,
+  link,
+  onClose,
+  onOpenOther,
+}: {
+  initial?: Recipe;
+  draft?: Recipe;
+  /** a recipe link to read straight away (shared into the app) */
+  link?: string;
+  onClose: () => void;
+  /** open a recipe that's already saved (when the link is one we have) */
+  onOpenOther?: (r: Recipe) => void;
+}) {
+  const { settings, device, recipes } = useStore();
   const view = useView();
   const foods = useFoods();
   const tracking = useTracking();
   const [r, setR] = useState<Recipe>(() => initial ?? draft ?? { ...blank(view), createdBy: device.me });
-  const [tags, setTags] = useState((initial?.tags ?? []).join(', '));
+  const [tags, setTags] = useState(((initial ?? draft)?.tags ?? []).join(', '));
   const [orig] = useState(r);
   const dirty = JSON.stringify(r) !== JSON.stringify(orig) || tags !== (initial?.tags ?? []).join(', ');
 
   const set = (patch: Partial<Recipe>) => setR((x) => ({ ...x, ...patch }));
+
+  // ---- a new recipe can be read from a website: paste its link and the form fills itself in
+  const [url, setUrl] = useState(link ?? '');
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<FetchProblem | null>(null);
+  const [filled, setFilled] = useState<{ site?: string; matched: number; lines: number } | null>(null);
+  const already = recipes.find((x) => x.importId && x.importId === r.importId && x.id !== r.id);
+  const getRecipe = async (raw = url) => {
+    const u = findUrl(raw);
+    if (!u) return setProblem(new FetchProblem('That doesn’t look like a web address. Copy the link from the recipe page.', 'site'));
+    if (!foods.ready) return toast('The food list is still loading — try again in a moment');
+    setBusy(true);
+    setProblem(null);
+    try {
+      const w = await fetchWebRecipe(u);
+      const made = webToRecipe(w, r.owner, foods.foods, device.me, newId);
+      setR((x) => ({ ...made, id: x.id, owner: x.owner, createdBy: x.createdBy }));
+      setTags(made.tags.join(', '));
+      const lines = made.ingredients.filter((i) => !i.heading);
+      setFilled({ site: w.site, matched: lines.filter((i) => i.foodId !== undefined).length, lines: lines.length });
+    } catch (e) {
+      setProblem(e instanceof FetchProblem ? e : new FetchProblem(e instanceof Error ? e.message : 'Couldn’t read that page.', 'site'));
+    } finally {
+      setBusy(false);
+    }
+  };
+  useEffect(() => {
+    if (link && foods.ready) void getRecipe(link);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [link, foods.ready]);
 
   const totals = useMemo(() => recipeTotals(r.ingredients, foods.get), [r.ingredients, foods]);
   const serving = perServing(r, totals);
@@ -95,6 +141,62 @@ export function RecipeEditor({ initial, draft, onClose }: { initial?: Recipe; dr
         </div>
       }
     >
+      {!initial && !filled && (
+        <div className="field link-field">
+          <label htmlFor="ru0">From a website</label>
+          <form
+            className="link-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void getRecipe();
+            }}
+          >
+            <input
+              id="ru0"
+              className="input"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Paste the recipe’s link"
+              inputMode="url"
+              autoCapitalize="off"
+              autoCorrect="off"
+              enterKeyHint="go"
+            />
+            <button className="btn primary small" type="submit" disabled={busy || !url.trim()}>
+              {busy ? 'Reading…' : 'Get recipe'}
+            </button>
+          </form>
+          {problem ? (
+            <div className="note problem">
+              <Icon name="alert" size={20} />
+              <span>
+                {problem.message}
+                {problem.kind === 'not-set-up' && <> See “Recipe reader” in the README.</>}
+                {(problem.kind === 'no-recipe' || problem.kind === 'site') && <> You can type it in below instead.</>}
+              </span>
+            </div>
+          ) : (
+            <p className="small-print" style={{ margin: '6px 2px 0' }}>Or leave this empty and type the recipe in below.</p>
+          )}
+        </div>
+      )}
+      {filled && (
+        <div className="note" style={{ marginBottom: 14 }}>
+          Filled in from {filled.site ?? 'the website'}. {filled.matched} of {filled.lines} ingredients matched to UK food data
+          {filled.matched < filled.lines ? '; you can pick foods for the rest below' : ''}. Check it over, then save.
+        </div>
+      )}
+      {already && (
+        <div className="note problem" style={{ marginBottom: 14 }}>
+          <Icon name="alert" size={20} />
+          <span>
+            You’ve already saved this recipe as “{already.title}”.{' '}
+            {onOpenOther && (
+              <button className="link-btn small" onClick={() => onOpenOther(already)}>Open that one</button>
+            )}
+          </span>
+        </div>
+      )}
       {r.photo && (
         <div className="hero-wrap">
           <img className="hero" src={r.photo} alt="" onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = 'none')} />
@@ -157,7 +259,8 @@ export function RecipeEditor({ initial, draft, onClose }: { initial?: Recipe; dr
 
       <div className="field" style={{ marginTop: 18 }}>
         <label htmlFor="rm">Method</label>
-        <textarea id="rm" className="input" rows={6} value={r.method} onChange={(e) => set({ method: e.target.value })} placeholder="Steps, one per line" />
+        <textarea id="rm" className="input" rows={6} value={r.method} onChange={(e) => set({ method: e.target.value })} placeholder={'Leave a blank line between steps.\n\n_For the sauce_ (underscores) makes a heading.'} />
+          <p className="small-print" style={{ margin: '6px 2px 0' }}>Leave a blank line between steps. Put a heading between underscores, like _For the sauce_.</p>
       </div>
       <div className="field">
         <label htmlFor="ru">Source link</label>

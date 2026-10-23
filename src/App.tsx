@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { BrowserView } from './components/BrowserView';
 import { findUrl } from './lib/recipeWeb';
 import { CalendarView } from './components/CalendarView';
 import { MenusView } from './components/MenusView';
@@ -10,9 +9,9 @@ import { SettingsView } from './components/SettingsView';
 import { Icon, ToastHost } from './components/ui';
 import { store, useStore } from './lib/store';
 
-type Tab = 'calendar' | 'shopping' | 'recipes' | 'browser' | 'menus' | 'foods' | 'settings';
+type Tab = 'calendar' | 'shopping' | 'recipes' | 'menus' | 'foods' | 'settings';
 
-const TITLES: Record<Tab, string> = { calendar: 'Calendar', shopping: 'Shopping list', recipes: 'Recipes', browser: 'Browser', menus: 'Menus', foods: 'Foods', settings: 'Settings' };
+const TITLES: Record<Tab, string> = { calendar: 'Calendar', shopping: 'Shopping list', recipes: 'Recipes', menus: 'Menus', foods: 'Foods', settings: 'Settings' };
 
 export default function App() {
   const { sync, device, settings, loaded } = useStore();
@@ -23,7 +22,7 @@ export default function App() {
     if (shared) window.history.replaceState(null, '', window.location.pathname);
     return shared;
   });
-  const [tab, setTab] = useState<Tab>(incoming ? 'browser' : 'calendar');
+  const [tab, setTab] = useState<Tab>(incoming ? 'recipes' : 'calendar');
 
   const go = (t: Tab) => {
     setTab(t);
@@ -88,19 +87,17 @@ export default function App() {
       <main>
         {tab === 'calendar' && <CalendarView />}
         {tab === 'shopping' && <ShoppingView />}
-        {tab === 'recipes' && <RecipesView />}
-        {tab === 'browser' && <BrowserView incoming={incoming} onIncomingUsed={() => setIncoming(undefined)} />}
+        {tab === 'recipes' && <RecipesView incoming={incoming} onIncomingUsed={() => setIncoming(undefined)} />}
         {tab === 'menus' && <MenusView />}
         {tab === 'foods' && <FoodsView />}
         {tab === 'settings' && <SettingsView onFoods={() => go('foods')} />}
       </main>
 
       <nav className="tabbar" aria-label="Main">
-        <div className="tabbar-inner" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+        <div className="tabbar-inner" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <TabBtn active={tab === 'calendar'} onClick={() => go('calendar')} icon="calendar" label="Calendar" />
           <TabBtn active={tab === 'shopping'} onClick={() => go('shopping')} icon="cart" label="Shopping" />
           <TabBtn active={tab === 'recipes'} onClick={() => go('recipes')} icon="book" label="Recipes" />
-          <TabBtn active={tab === 'browser'} onClick={() => go('browser')} icon="globe" label="Browser" />
           <TabBtn active={tab === 'menus'} onClick={() => go('menus')} icon="list" label="Menus" />
         </div>
       </nav>
