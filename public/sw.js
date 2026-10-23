@@ -1,6 +1,6 @@
 // Offline support: network-first for the page, cache-first for static files.
 // Supabase and exchange-rate requests are never cached here.
-const CACHE = 'mealplanner-v3';
+const CACHE = 'mealplanner-v4';
 const SHELL = ['./', './index.html', './icons/icon-192.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
