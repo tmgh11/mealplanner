@@ -1,3 +1,4 @@
+import { splitExtras } from './method';
 import { parseMinutes } from './times';
 /**
  * Importing from Paprika. Paprika's "Export → All recipes" makes a .paprikarecipes file: a zip
@@ -54,7 +55,9 @@ const clean = (s?: string) => (s ?? '').replace(/\r/g, '').replace(/\n{3,}/g, '\
 
 export function paprikaToRecipe(p: PaprikaRecipe, owner: Who, foods: Food[], me: Person, newId: () => string): Recipe {
   const lines = splitItems(clean(p.ingredients), false);
-  const notes = [clean(p.description), clean(p.notes)].filter(Boolean).join('\n\n');
+  // tips, storage and freezing advice after the method go to the notes
+  const { method, extras } = splitExtras(clean(p.directions));
+  const notes = [clean(p.description), clean(p.notes), extras].filter(Boolean).join('\n\n');
   const url = p.source_url?.trim() || (/^https?:\/\//.test(p.source ?? '') ? p.source!.trim() : '');
   return {
     id: newId(),
@@ -66,7 +69,7 @@ export function paprikaToRecipe(p: PaprikaRecipe, owner: Who, foods: Food[], me:
     cookMins: parseMinutes(p.cook_time),
     totalMins: parseMinutes(p.total_time),
     ingredients: lines.map((l) => resolveLine(l, foods).ingredient),
-    method: clean(p.directions),
+    method,
     notes: notes || undefined,
     sourceUrl: url || undefined,
     tags: [...new Set((p.categories ?? []).map((c) => c.trim()).filter(Boolean))],

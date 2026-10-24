@@ -39,3 +39,33 @@ export function methodSteps(method: string): MethodPart[] {
   }
   return out;
 }
+
+/**
+ * Recipe sites often put tips, storage and freezing advice after the method, under a heading
+ * like "Tips for how to make…", "Can you freeze it?" or "Storage". That isn't part of cooking:
+ * everything from such a heading on belongs in the notes.
+ */
+const EXTRAS = /^(_)?((top |recipe |cook'?s |chef'?s |our |expert )?tips?(?=\s*($|:|_|for\b|and\b|&|on\b))|(recipe |cook'?s )?notes?(?=\s*($|:|_))|can (you|i) (freeze|make|store|keep)|how (to|do you|long) (store|freeze|keep|reheat)|storage\b|storing\b|to store\b|freezing\b|to freeze\b|make[- ]ahead\b|serving suggestions?\b|faqs?\b|variations?\b|substitutions?\b|nutrition\b)/i;
+
+export function splitExtras(method: string): { method: string; extras?: string } {
+  const text = method.replace(/\r/g, '');
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i].trim();
+    // a short heading-like line, on its own (after a blank line, or any line when the method has none)
+    const alone = !lines[i - 1]?.trim() || !/\n\s*\n/.test(text);
+    if (i > 0 && l.length <= 70 && !/[.!]$/.test(l) && EXTRAS.test(l) && alone) {
+      const before = lines.slice(0, i).join('\n').trim();
+      if (!before) return { method: text };
+      return { method: before, extras: lines.slice(i).join('\n').trim() };
+    }
+  }
+  return { method: text };
+}
+
+/** Moves tips found at the end of a recipe's method into its notes. Null if there are none. */
+export function moveExtrasToNotes<T extends { method: string; notes?: string }>(r: T): T | null {
+  const { method, extras } = splitExtras(r.method);
+  if (!extras) return null;
+  return { ...r, method, notes: [r.notes?.trim(), extras].filter(Boolean).join('\n\n') };
+}

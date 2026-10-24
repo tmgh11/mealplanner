@@ -6,6 +6,7 @@
  */
 import { resolveLine } from './ingredients';
 import { parseMinutes } from './times';
+import { splitExtras } from './method';
 import type { Food, Person, Recipe, Who } from './types';
 
 export interface WebRecipe {
@@ -148,6 +149,8 @@ export function ldJsonBlocks(html: string): unknown[] {
 }
 
 export function webToRecipe(w: WebRecipe, owner: Who, foods: Food[], me: Person, newId: () => string): Recipe {
+  // tips, storage and freezing advice after the method go to the notes
+  const split = splitExtras(w.method);
   return {
     id: newId(),
     kind: 'recipe',
@@ -158,8 +161,8 @@ export function webToRecipe(w: WebRecipe, owner: Who, foods: Food[], me: Person,
     cookMins: w.cookMins,
     totalMins: w.totalMins,
     ingredients: w.ingredients.map((l) => resolveLine(l, foods).ingredient),
-    method: w.method,
-    notes: w.description,
+    method: split.method,
+    notes: [w.description, split.extras].filter(Boolean).join('\n\n') || undefined,
     sourceUrl: w.url,
     tags: w.tags,
     photo: w.image,

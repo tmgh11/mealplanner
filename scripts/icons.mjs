@@ -6,10 +6,10 @@ const mask = readFileSync('public/icons/icon-maskable.svg', 'utf8');
 const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 const page = await browser.newPage();
 const jobs = [
-  [svg, 192, 'icon-192.png', false],
-  [svg, 512, 'icon-512.png', false],
-  [mask, 512, 'icon-maskable-512.png', false],
-  [mask, 180, 'apple-touch-icon.png', false],
+  [svg, 192, 'icon-192-v2.png', false],
+  [svg, 512, 'icon-512-v2.png', false],
+  [mask, 512, 'icon-maskable-512-v2.png', false],
+  [mask, 180, 'apple-touch-icon-v2.png', false],
 ];
 for (const [src, size, name] of jobs) {
   await page.setViewportSize({ width: size, height: size });

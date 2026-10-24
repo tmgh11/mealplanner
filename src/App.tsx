@@ -9,6 +9,7 @@ import { SettingsView } from './components/SettingsView';
 import { Icon, ToastHost } from './components/ui';
 import { store, useStore } from './lib/store';
 import { timesFromNotes } from './lib/times';
+import { moveExtrasToNotes } from './lib/method';
 
 type Tab = 'calendar' | 'shopping' | 'recipes' | 'menus' | 'foods' | 'settings';
 
@@ -21,7 +22,14 @@ export default function App() {
   useEffect(() => {
     if (!loaded || tidied.current) return;
     tidied.current = true;
-    const moved = recipes.map(timesFromNotes).filter((r): r is NonNullable<typeof r> => Boolean(r));
+    // …and tips that came in as part of the method belong in the notes
+    const moved = recipes
+      .map((r) => {
+        const a = timesFromNotes(r) ?? r;
+        const b = moveExtrasToNotes(a) ?? a;
+        return b === r ? null : b;
+      })
+      .filter((r): r is NonNullable<typeof r> => Boolean(r));
     if (moved.length) store.put(...moved);
   }, [loaded, recipes]);
   // a recipe link shared into the app (Android's Share menu opens ./?url=… or ./?text=…)
@@ -44,7 +52,7 @@ export default function App() {
   if (!loaded) {
     return (
       <div className="app" style={{ display: 'grid', placeItems: 'center', minHeight: '80dvh' }}>
-        <img src="icons/icon-192.png" alt="" style={{ width: 64, height: 64, borderRadius: 18, opacity: 0.9 }} />
+        <img src="icons/icon-192-v2.png" alt="" style={{ width: 64, height: 64, borderRadius: 18, opacity: 0.9 }} />
       </div>
     );
   }
@@ -53,7 +61,7 @@ export default function App() {
     return (
       <div className="app">
         <div className="welcome">
-          <img className="logo" src="icons/icon-192.png" alt="" />
+          <img className="logo" src="icons/icon-192-v2.png" alt="" />
           <h2>Welcome to Meal Planner</h2>
           <p className="text-2">Whose phone is this?</p>
         </div>
