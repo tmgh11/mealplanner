@@ -1,6 +1,6 @@
 /** From a line of text to an ingredient: read it, match a food, work out the grams. */
 import type { Food, Ingredient } from './types';
-import { isHeading, parseLine, type ParsedLine } from './parse';
+import { headingText, isHeading, parseLine, type ParsedLine } from './parse';
 import { searchFoods } from './foods';
 import { toGrams } from './nutrition';
 
@@ -22,7 +22,7 @@ export interface Resolved {
 export function resolveLine(text: string, foods: Food[]): Resolved {
   const parsed = parseLine(text);
   if (isHeading(text)) {
-    return { ingredient: { id: newIngredientId(), text: text.trim().replace(/:$/, ''), foodId: null, heading: true }, parsed, estimated: false, checkState: false, alternatives: [] };
+    return { ingredient: { id: newIngredientId(), text: headingText(text), foodId: null, heading: true }, parsed, estimated: false, checkState: false, alternatives: [] };
   }
   // seasoning "to taste", water, spray: nothing to count or buy by weight
   if (/^(warm |cold |boiling |hot |iced )?water$|cooking spray|to taste|^(sea |table )?salt( and (black )?pepper)?$|^(black )?pepper$|^salt (&|and) pepper$/i.test(parsed.name) && (parsed.qty == null || /water/i.test(parsed.name))) {
@@ -90,4 +90,18 @@ export function flags(ing: Ingredient, food: Food | undefined): Flags {
     estimated: Boolean(food) && ing.grams != null && !weighed && !ing.gramsSetByHand,
     checkState: Boolean(food && CHANGES_WHEN_COOKED.test(food.name)),
   };
+}
+
+/**
+ * Recipes saved before a line like "[spice paste]" counted as a heading have it as an
+ * ingredient. Turns those into headings. Null if there's nothing to change.
+ */
+export function fixHeadings<T extends { ingredients: Ingredient[] }>(r: T): T | null {
+  let changed = false;
+  const ingredients = r.ingredients.map((i) => {
+    if (i.heading || i.gramsSetByHand || !isHeading(i.text)) return i;
+    changed = true;
+    return { id: i.id, text: headingText(i.text), foodId: null, heading: true };
+  });
+  return changed ? { ...r, ingredients } : null;
 }

@@ -38,7 +38,7 @@ const UNITS: Record<string, string> = {
   clove: 'clove', cloves: 'clove', slice: 'slice', slices: 'slice',
   tin: 'tin', tins: 'tin', can: 'tin', cans: 'tin', fillet: 'fillet', fillets: 'fillet',
   rasher: 'rasher', rashers: 'rasher', cube: 'cube', cubes: 'cube', piece: 'piece', pieces: 'piece',
-  bunch: 'bunch', sprig: 'sprig', sprigs: 'sprig', stick: 'stick', sticks: 'stick', head: 'head',
+  bunch: 'bunch', bunches: 'bunch', sprig: 'sprig', sprigs: 'sprig', stick: 'stick', sticks: 'stick', head: 'head',
   large: 'large', medium: 'medium', small: 'small', triangle: 'triangle', triangles: 'triangle',
   pot: 'pot', pots: 'pot', scoop: 'scoop', scoops: 'scoop',
   knob: 'knob', knobs: 'knob', thumb: 'thumb', cm: 'cm', leaf: 'leaf', leaves: 'leaf',
@@ -177,10 +177,12 @@ export function parseLine(input: string): ParsedLine {
     if (out.qty == null) out.qty = 1;
   }
 
-  // "2 garlic cloves crushed": the count word inside the name
-  if (!out.unit && out.qty != null) {
+  // "2 garlic cloves crushed", "2 large garlic cloves": the count word inside the name
+  const sized = out.unit === 'large' || out.unit === 'medium' || out.unit === 'small';
+  if ((!out.unit || sized) && out.qty != null) {
     const inner = s.match(/\b(cloves?|fillets?|tins?|cans?|rashers?)\b/i);
     if (inner) {
+      if (sized) out.size = out.unit as ParsedLine['size'];
       out.unit = UNITS[inner[1].toLowerCase()];
       s = s.replace(inner[0], ' ');
     }
@@ -249,8 +251,14 @@ export function formatQty(qty?: number, unit?: string): string {
 /** "FOR THE SAUCE:", "Nuria added:", "Topping" in capitals: a heading in an ingredient list, not a food. */
 export function isHeading(line: string): boolean {
   const t = line.trim();
-  if (!t || /\d/.test(t)) return false;
+  if (!t) return false;
+  // "[spice paste]", "_For the sauce_": always a heading
+  if (/^\[[^\]]+\]$/.test(t) || /^_[^_]+_$/.test(t)) return t.length <= 50;
+  if (/\d/.test(t)) return false;
   if (/:$/.test(t) && t.length <= 40) return true;
   const letters = t.replace(/[^A-Za-z]/g, '');
   return letters.length >= 4 && letters === letters.toUpperCase() && t.split(/\s+/).length <= 6;
 }
+
+/** A heading's words, without the colon, brackets or underscores around it. */
+export const headingText = (line: string) => line.trim().replace(/^[[_]\s*|\s*[\]_]$/g, '').replace(/:$/, '').trim();

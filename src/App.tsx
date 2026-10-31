@@ -10,6 +10,7 @@ import { Icon, ToastHost } from './components/ui';
 import { store, useStore } from './lib/store';
 import { timesFromNotes } from './lib/times';
 import { moveExtrasToNotes } from './lib/method';
+import { fixHeadings } from './lib/ingredients';
 
 type Tab = 'calendar' | 'shopping' | 'recipes' | 'menus' | 'foods' | 'settings';
 
@@ -27,7 +28,8 @@ export default function App() {
       .map((r) => {
         const a = timesFromNotes(r) ?? r;
         const b = moveExtrasToNotes(a) ?? a;
-        return b === r ? null : b;
+        const c = fixHeadings(b) ?? b;
+        return c === r ? null : c;
       })
       .filter((r): r is NonNullable<typeof r> => Boolean(r));
     if (moved.length) store.put(...moved);

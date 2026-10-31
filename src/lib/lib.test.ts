@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { formatQty, parseLine, splitItems, splitRecipeIngredients } from './parse';
 import { buildFoods, cofidId, findFoods, searchFoods, type CofidRow } from './foods';
 import { kcalPer100Cooked, perCookedGrams, perServing, recipeTotals, toGrams } from './nutrition';
-import { resolveLine } from './ingredients';
+import { fixHeadings, resolveLine } from './ingredients';
 import { visibleIn, type FoodEntry } from './types';
 import cofid from '../../public/data/cofid.json';
 
@@ -259,5 +259,14 @@ describe('ingredient lines from Paprika', () => {
   it('joins "for the tin:" onto the line before, but keeps "For the sauce:" as a heading', () => {
     expect(splitRecipeIngredients('butter\nfor the tin:\n800g soft cheese').map((l) => l.trim())).toEqual(['butter, for the tin', '800g soft cheese']);
     expect(splitRecipeIngredients('For the sauce:\n1 onion').map((l) => l.trim())).toEqual(['For the sauce:', '1 onion']);
+  });
+});
+
+describe('bracketed lines are headings', () => {
+  it('reads "[spice paste]" as a heading, and fixes recipes saved before', () => {
+    expect(resolveLine('[spice paste]', foods).ingredient).toMatchObject({ text: 'spice paste', heading: true, foodId: null });
+    const old = { ingredients: [{ id: 'a', text: '[spice paste]' }, { id: 'b', text: '2 shallots', foodId: 'x' }] };
+    expect(fixHeadings(old)?.ingredients[0]).toMatchObject({ text: 'spice paste', heading: true });
+    expect(fixHeadings({ ingredients: [{ id: 'b', text: '2 shallots' }] })).toBeNull();
   });
 });

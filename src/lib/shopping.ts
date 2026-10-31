@@ -17,7 +17,7 @@ import { AISLES, SLOT_LABELS, isAisle, visibleIn } from './types';
  * Frozen before "cream" is dairy; "peanut butter" is a spread before "butter" is dairy).
  */
 const AISLE_WORDS: [string, RegExp][] = [
-  ['Pet', /\b(cat|cats|dog|dogs|kitten|puppy|pet)\s+(food|litter|treats?|biscuits?|pouches|toys?|bowls?)\b|\b(cat|kitty) litter\b|\blitter\b|\b(whiskas|felix|purina|dreamies|pedigree|sheba|iams|webbox)\b/],
+  ['Pet', /\b(cat|cats|dog|dogs|kitten|puppy|pet)\s+(food|litter|treats?|biscuits?|pouches|toys?|bowls?|bags|poo|poop|shampoo|beds?|collars?|leads?)\b|\bpets?\b|\b(poo|poop|doggy) bags\b|\bcatnip\b|\blitter trays?\b|\bflea (treatment|drops|collar)\b|\bwormers?\b|\b(cat|kitty) litter\b|\blitter\b|\b(whiskas|felix|purina|dreamies|pedigree|sheba|iams|webbox)\b/],
   ['Toiletries & health', /\b(tooth ?paste|tooth ?brush(es)?|floss|mouthwash|shampoo|conditioner|shower gel|body wash|hand ?wash|soap|deodorant|razors?|shaving|tampons?|sanitary|pads|paracetamol|ibuprofen|plasters?|vitamins?|sun ?cream|moisturiser|lip balm|tissues|toilet (roll|paper)|loo roll|cotton (wool|buds))\b/],
   ['Household', /\b(kitchen roll|bin bags?|bin liners?|foil|cling ?film|baking (paper|parchment)|washing[- ]up|dishwasher|laundry|detergent|fabric softener|bleach|cleaner|cleaning|sponges?|scourers?|batteries|light ?bulbs?|freezer bags|sandwich bags|zip ?lock|candles|matches|kitchen towel|wipes)\b/],
   ['Frozen', /\b(frozen|ice cream|ice lolly|ice lollies|sorbet|fish fingers|oven chips|ice cubes)\b/],
@@ -122,6 +122,7 @@ function kindOf(food: Food | undefined, name: string): string {
 
 /** Units bought by count rather than weight. */
 const COUNT_UNITS = new Set(['clove', 'slice', 'tin', 'fillet', 'rasher', 'cube', 'triangle', 'pot', 'piece', 'stick', 'head', 'bunch', 'sprig']);
+const SIZES = new Set(['large', 'medium', 'small']);
 const SPOON_UNITS = new Set(['tsp', 'tbsp', 'dsp', 'cup', 'pinch', 'handful']);
 const ML: Record<string, number> = { ml: 1, cl: 10, l: 1000 };
 
@@ -163,13 +164,18 @@ type Line = Pick<ShopItem, 'name' | 'foodId' | 'key' | 'grams' | 'qty' | 'unit' 
 export function lineFor(ing: Ingredient, factor: number, food?: Food): Line | null {
   if (ing.foodId === null) return null; // "salt to taste", water…
   const p = parseLine(ing.text);
-  const unit = ing.unit ?? p.unit;
+  let unit = ing.unit ?? p.unit;
   const qty = ing.qty ?? p.qty;
+  // "4 large tomatoes", "2 large garlic cloves": on a shopping list that's a count, not a weight
+  if (unit && SIZES.has(unit) && qty != null && !ing.gramsSetByHand) {
+    const word = ing.text.match(/\b(cloves?|fillets?|rashers?|slices?|tins?|cans?|sticks?|heads?)\b/i)?.[1].toLowerCase().replace(/s$/, '').replace('can', 'tin');
+    unit = word ?? 'each';
+  }
   const base = { name: shopName(ing.text, food), foodId: ing.foodId ?? undefined, key: food ? shopKey(food) : undefined, aisle: aisleOf(food, p.name) };
   const round = (n: number) => Math.round(n * 100) / 100;
   if (ing.gramsSetByHand && ing.grams != null) return { ...base, grams: round(ing.grams * factor) };
   if (unit && ML[unit] && qty != null) return { ...base, qty: round(qty * ML[unit] * factor), unit: 'ml' };
-  if (qty != null && unit && (COUNT_UNITS.has(unit) || SPOON_UNITS.has(unit))) return { ...base, qty: round(qty * factor), unit };
+  if (qty != null && unit && (COUNT_UNITS.has(unit) || SPOON_UNITS.has(unit) || unit === 'each')) return { ...base, qty: round(qty * factor), unit };
   const each = food?.portions.some((x) => x.unit === 'each');
   // "1/2 onion", and "boiled egg" / "Yogurt" with no number: bought as whole items
   if (!unit && p.grams == null && ((qty != null && (ing.grams == null || each)) || (qty == null && each))) {
@@ -283,7 +289,7 @@ export function fmtAmount(items: Pick<ShopItem, 'grams' | 'qty' | 'unit'>[]): st
     const n = Math.round(q * 10) / 10;
     if (unit === 'ml') parts.push(n >= 1000 ? `${Math.round(n / 100) / 10} l` : `${Math.round(n)} ml`);
     else if (unit === 'each') parts.push(`${n}`);
-    else parts.push(`${n} ${unit}${n === 1 || ['tsp', 'tbsp', 'dsp'].includes(unit) ? '' : unit === 'pinch' ? 'es' : 's'}`);
+    else parts.push(`${n} ${unit}${n <= 1 || ['tsp', 'tbsp', 'dsp'].includes(unit) ? '' : /(ch|sh)$/.test(unit) ? 'es' : 's'}`);
   }
   return parts.join(' + ');
 }

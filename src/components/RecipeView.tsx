@@ -9,7 +9,10 @@ import { newId, store, useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { lineFor, toItem } from '../lib/shopping';
 import { kcalPer100Cooked, recipeTotals } from '../lib/nutrition';
-import type { ShopItem } from '../lib/types';
+import { SLOT_LABELS, type Meal, type ShopItem } from '../lib/types';
+import { MealEditor } from './MealEditor';
+import { today } from '../lib/dates';
+import { dayLabel } from '../lib/plan';
 import { methodSteps } from '../lib/method';
 import { fmtMinutes, totalMinutes } from '../lib/times';
 
@@ -23,12 +26,13 @@ const host = (u: string) => {
 
 /** A recipe to read and cook from. Editing sits behind the ⋯ menu. */
 export function RecipeView({ id, onClose }: { id: string; onClose: () => void }) {
-  const { recipes, device } = useStore();
+  const { recipes, device, mealsByDate } = useStore();
   const foods = useFoods();
   const tracking = useTracking();
   const r = recipes.find((x) => x.id === id);
   const [editing, setEditing] = useState(false);
   const [shopItems, setShopItems] = useState<ShopItem[] | null>(null);
+  const [planning, setPlanning] = useState(false);
   // steps crossed off while cooking: only for as long as the recipe is open
   const [done, setDone] = useState<Set<number>>(() => new Set());
   const toggleStep = (i: number) =>
@@ -103,11 +107,16 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
           )}
         </div>
 
-        {r.ingredients.length > 0 && (
-          <button className="btn primary shop-btn" onClick={addToShopping}>
-            <Icon name="cart" size={18} /> Add to the shopping list
+        <div className="btn-row recipe-actions">
+          {r.ingredients.length > 0 && (
+            <button className="btn primary grow-btn" onClick={addToShopping}>
+              <Icon name="cart" size={18} /> Shopping list
+            </button>
+          )}
+          <button className="btn primary grow-btn" onClick={() => setPlanning(true)}>
+            <Icon name="calendar" size={18} /> Calendar
           </button>
-        )}
+        </div>
 
         <div className="section-title">Ingredients</div>
         {r.ingredients.length ? (
@@ -168,6 +177,20 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
       </Sheet>
 
       {editing && <RecipeEditor initial={r} onClose={() => setEditing(false)} />}
+      {planning && (
+        <MealEditor
+          initial={{ slot: 'dinner', who: device.me, content: { type: 'recipe', recipeId: r.id, portions: {} } }}
+          date={today()}
+          onSave={(body, date) => {
+            const d = date ?? today();
+            const order = (mealsByDate.get(d) ?? []).reduce((m, x) => Math.max(m, x.order), -1) + 1;
+            const meal: Meal = { ...body, id: newId(), kind: 'meal', date: d, order, createdBy: device.me, updatedAt: 0 };
+            store.put(meal);
+            toast(`Added to ${dayLabel(d)}, ${SLOT_LABELS[body.slot].toLowerCase()}`, { label: 'Undo', run: () => store.put({ ...meal, deleted: true }) });
+          }}
+          onClose={() => setPlanning(false)}
+        />
+      )}
       {shopItems && <ChooseItemsSheet title="Add to shopping list" items={shopItems} note={`Everything for ${r.title || 'this recipe'} (serves ${r.servings}).`} onClose={() => setShopItems(null)} />}
     </>
   );

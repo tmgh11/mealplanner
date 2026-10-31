@@ -220,3 +220,20 @@ describe('aisles: things that tripped up the first version', () => {
     ['red peppers', 'Fruit & veg'],
   ])('%s → %s', (name, aisle) => expect(aisleOf(undefined, name)).toBe(aisle));
 });
+
+describe('counts stay counts on the shopping list', () => {
+  it('"4 large tomatoes" is 4, not grams; "2 large garlic cloves" is 2 cloves', () => {
+    const t = resolveLine('4 large tomatoes', foods).ingredient;
+    const tl = lineFor(t, 1, foods.find((f) => f.id === t.foodId));
+    expect(tl).toMatchObject({ qty: 4, unit: 'each' });
+    expect(tl?.grams).toBeUndefined();
+    const g = resolveLine('2 large garlic cloves', foods).ingredient;
+    expect(lineFor(g, 1, foods.find((f) => f.id === g.foodId))).toMatchObject({ qty: 2, unit: 'clove' });
+    expect(fmtAmount([lineFor(g, 1)!])).toBe('2 cloves');
+  });
+  it('pet poo bags go to Pet', () => {
+    expect(aisleOf(undefined, 'Pet poo bags')).toBe('Pet');
+    expect(aisleOf(undefined, 'dog poo bags')).toBe('Pet');
+    expect(aisleOf(undefined, 'hot dogs')).not.toBe('Pet');
+  });
+});
