@@ -74,6 +74,14 @@ export function CalendarView() {
     if (!device.swiped) store.setDevice({ swiped: true });
     setSelected(addDays(selected, n));
   };
+  // a swipe slides the content itself, so no extra slide-in animation
+  const swipe = (n: number) => {
+    if (!device.swiped) store.setDevice({ swiped: true });
+    setDir(null);
+    setSelectedRaw(addDays(selected, n));
+  };
+  const ahead = mode === 'day' ? selected > t : start > weekStart(t);
+  const todayLabel = mode === 'week' ? 'This week' : 'Today';
   // the month (or months) on screen, with the year when it isn't this one
   const monthOf = (d: string) => fromISO(d).toLocaleDateString('en-GB', { month: 'long', ...(d.slice(0, 4) !== t.slice(0, 4) ? { year: 'numeric' } : {}) });
   const month =
@@ -106,7 +114,7 @@ export function CalendarView() {
       <div className="cal-row">
         <strong className="cal-month">{month}</strong>
         <button className={`today-btn${atToday ? ' hidden' : ''}`} onClick={goToday} tabIndex={atToday ? -1 : 0} aria-hidden={atToday}>
-          <Icon name="left" size={13} stroke={3} /> {mode === 'week' ? 'This week' : 'Today'}
+          {ahead ? <><Icon name="left" size={13} stroke={3} /> {todayLabel}</> : <>{todayLabel} <Icon name="right" size={13} stroke={3} /></>}
         </button>
         <div className="cal-mode">
           <Seg<'day' | 'week'> value={mode} onChange={(m) => store.setDevice({ calMode: m })} options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }]} />
@@ -116,7 +124,7 @@ export function CalendarView() {
       {mode === 'day' ? (
         <>
           <DateStrip selected={selected} today={t} onPick={setSelected} hasMeals={(d) => mealsOn(d).length > 0} />
-          <Swipeable onPrev={() => move(-1)} onNext={() => move(1)}>
+          <Swipeable onPrev={() => swipe(-1)} onNext={() => swipe(1)}>
             <div key={selected} className={dir ? `slide-in-${dir}` : undefined}>
           <DayCard
             date={selected}
@@ -136,7 +144,7 @@ export function CalendarView() {
         </>
       ) : (
         <>
-        <Swipeable onPrev={() => move(-7)} onNext={() => move(7)}>
+        <Swipeable onPrev={() => swipe(-7)} onNext={() => swipe(7)}>
           <WeekStrip start={start} today={t} onMove={move} />
           <div key={start} className={dir ? `slide-in-${dir}` : undefined}>
           {weekDays.map((date) => {

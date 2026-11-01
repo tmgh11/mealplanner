@@ -15,6 +15,28 @@ export function Swipeable({ onPrev, onNext, children }: { onPrev: () => void; on
   const ref = useRef<HTMLDivElement>(null);
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const busy = useRef(false);
+
+  /** Carry on sliding the way the finger went, swap in the new day or week off screen, then slide it in from the other side. */
+  const finish = (forward: boolean) => {
+    const w = ref.current?.offsetWidth ?? 360;
+    const out = forward ? -w : w;
+    busy.current = true;
+    setDragging(false);
+    setDx(out);
+    window.setTimeout(() => {
+      setDragging(true); // no transition while it jumps to the far side
+      (forward ? onNext : onPrev)();
+      setDx(-out);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          setDragging(false);
+          setDx(0);
+          window.setTimeout(() => (busy.current = false), 200);
+        }),
+      );
+    }, 160);
+  };
   const g = useRef({ id: -1, x: 0, y: 0, t: 0, horizontal: null as boolean | null, moved: false });
 
   return (
@@ -23,7 +45,7 @@ export function Swipeable({ onPrev, onNext, children }: { onPrev: () => void; on
       className={`swipeable${dragging ? ' dragging' : ''}`}
       style={{ transform: dx ? `translateX(${dx}px)` : undefined }}
       onPointerDown={(e) => {
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (busy.current || (e.pointerType === 'mouse' && e.button !== 0)) return;
         const edge = 24;
         if (e.clientX < edge || e.clientX > window.innerWidth - edge) return;
         g.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: Date.now(), horizontal: null, moved: false };
@@ -53,9 +75,9 @@ export function Swipeable({ onPrev, onNext, children }: { onPrev: () => void; on
         const mx = e.clientX - s.x;
         const w = ref.current?.offsetWidth ?? 360;
         const fast = Math.abs(mx) > 40 && Date.now() - s.t < 250;
+        if (Math.abs(mx) > w / 3 || fast) return finish(mx < 0);
         setDragging(false);
         setDx(0);
-        if (Math.abs(mx) > w / 3 || fast) (mx < 0 ? onNext : onPrev)();
       }}
       onPointerCancel={() => {
         g.current.id = -1;
