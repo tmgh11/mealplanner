@@ -799,16 +799,23 @@ button.step:active { background: var(--surface-2); }
 .cal-title strong { font-size: 22px; letter-spacing: -0.01em; line-height: 1.2; }
 .cal-title span { font-size: 14px; color: var(--muted); font-weight: 550; }
 
-.swipeable { min-height: 55vh; touch-action: pan-y; transition: transform 0.2s ease; will-change: transform; }
-.swipeable.dragging { transition: none; user-select: none; -webkit-user-select: none; }
+.swipeable { min-height: 55vh; touch-action: pan-y; }
+/* the window the days slide through: it reaches the screen edges, and the days either side wait just beyond them */
+.swipe-view { overflow: hidden; margin: -6px -16px; padding: 6px 16px; }
+.swipe-track { position: relative; transition: transform 0.23s cubic-bezier(0.2, 0.7, 0.3, 1); will-change: transform; }
+.swipe-track.dragging { transition: none; user-select: none; -webkit-user-select: none; }
+.swipe-panel { display: flow-root; }
+.swipe-panel.side { position: absolute; top: 0; left: 0; right: 0; }
+.swipe-panel.prev { transform: translateX(calc(-100% - 32px)); }
+.swipe-panel.next { transform: translateX(calc(100% + 32px)); }
 @keyframes slide-from-right { from { transform: translateX(28%); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes slide-from-left { from { transform: translateX(-28%); opacity: 0; } to { transform: none; opacity: 1; } }
 .slide-in-next { animation: slide-from-right 0.22s ease-out; }
 .slide-in-prev { animation: slide-from-left 0.22s ease-out; }
-@media (prefers-reduced-motion: reduce) { .slide-in-next, .slide-in-prev { animation: none; } .swipeable { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .slide-in-next, .slide-in-prev { animation: none; } .swipe-track { transition-duration: 0.01s; } }
 .swipe-hint { text-align: center; font-size: 12.5px; color: var(--muted); margin: 10px 0 0; }
 .btn-row.add-meal { margin-top: 10px; }
-main { overflow-x: clip; }
+.app { overflow-x: clip; }
 
 /* ---------- Top bar person filter ---------- */
 .person-filter .more-menu { right: 0; min-width: 200px; }

@@ -124,30 +124,47 @@ export function CalendarView() {
       {mode === 'day' ? (
         <>
           <DateStrip selected={selected} today={t} onPick={setSelected} hasMeals={(d) => mealsOn(d).length > 0} />
-          <Swipeable onPrev={() => swipe(-1)} onNext={() => swipe(1)}>
-            <div key={selected} className={dir ? `slide-in-${dir}` : undefined}>
-          <DayCard
-            date={selected}
-            today={t}
-            meals={mealsOn(selected)}
-            view={view}
-            lookup={lookup}
-            totals={totals(selected)}
-            onOpen={(m) => setEditing({ meal: m, body: m, date: selected })}
-            onAdd={(slot) => add(selected, slot)}
-            onAddMenu={() => setSheet('add-menu')}
+          <Swipeable
+            onPrev={() => swipe(-1)}
+            onNext={() => swipe(1)}
+            panel={(o) => {
+              const date = addDays(selected, o);
+              return {
+                key: date,
+                node: (
+                  <div className={!o && dir ? `slide-in-${dir}` : undefined}>
+                    <DayCard
+                      date={date}
+                      today={t}
+                      meals={mealsOn(date)}
+                      view={view}
+                      lookup={lookup}
+                      totals={totals(date)}
+                      onOpen={(m) => setEditing({ meal: m, body: m, date })}
+                      onAdd={(slot) => add(date, slot)}
+                      onAddMenu={() => setSheet('add-menu')}
+                    />
+                  </div>
+                ),
+              };
+            }}
           />
-            </div>
-          </Swipeable>
           {!device.swiped && <p className="swipe-hint">Swipe the day sideways to move between days</p>}
           <ClearMeals dates={[selected]} view={view} label={fromISO(selected).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace(',', '')} />
         </>
       ) : (
         <>
-        <Swipeable onPrev={() => swipe(-7)} onNext={() => swipe(7)}>
-          <WeekStrip start={start} today={t} onMove={move} />
-          <div key={start} className={dir ? `slide-in-${dir}` : undefined}>
-          {weekDays.map((date) => {
+        <Swipeable
+          onPrev={() => swipe(-7)}
+          onNext={() => swipe(7)}
+          head={<WeekStrip start={start} today={t} onMove={move} />}
+          panel={(o) => {
+            const ws = addDays(start, 7 * o);
+            return {
+              key: ws,
+              node: (
+                <div className={!o && dir ? `slide-in-${dir}` : undefined}>
+          {daysFrom(ws, 7).map((date) => {
             const meals = mealsOn(date);
             return (
               <section key={date} className={`card day week-day${date === t ? ' today' : ''}${date < t ? ' past' : ''}`}>
@@ -183,8 +200,11 @@ export function CalendarView() {
               </section>
             );
           })}
-          </div>
-        </Swipeable>
+                </div>
+              ),
+            };
+          }}
+        />
         <div className="cal-end">
           <button className="btn primary" onClick={() => setSheet('save-menu')}>
             <Icon name="download" size={18} /> Save this week as a menu

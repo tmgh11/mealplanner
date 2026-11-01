@@ -6,44 +6,44 @@ import { daysFrom, weekStart } from '../lib/plan';
 export const dayDiff = (a: string, b: string) => Math.round((fromISO(b).getTime() - fromISO(a).getTime()) / 86400000);
 
 /**
- * Swipe sideways to go back or forward. The content follows the finger; let go past a third of
- * the way (or with a quick flick) and it moves on. Only sideways movement counts, so scrolling up
- * and down still works, and touches that start right at the screen edge are left alone for the
- * phone's own back gesture.
+ * Swipe sideways to go back or forward, like a carousel: the day (or week) either side sits just
+ * off screen and follows the finger in. Let go past a third of the way (or with a quick flick)
+ * and it carries on to the next one. Only sideways movement counts, so scrolling up and down
+ * still works, and touches that start right at the screen edge are left alone for the phone's own
+ * back gesture. `panel(-1 | 0 | 1)` draws the one before, the current one and the one after.
  */
-export function Swipeable({ onPrev, onNext, children }: { onPrev: () => void; onNext: () => void; children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
+export function Swipeable({ onPrev, onNext, panel, head }: {
+  onPrev: () => void;
+  onNext: () => void;
+  panel: (offset: -1 | 0 | 1) => { key: string; node: ReactNode };
+  head?: ReactNode;
+}) {
+  const view = useRef<HTMLDivElement>(null);
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const busy = useRef(false);
+  const g = useRef({ id: -1, x: 0, y: 0, t: 0, horizontal: null as boolean | null, moved: false });
+  const width = () => view.current?.offsetWidth ?? 390;
 
-  /** Carry on sliding the way the finger went, swap in the new day or week off screen, then slide it in from the other side. */
+  const settle = () => requestAnimationFrame(() => requestAnimationFrame(() => setDragging(false)));
+
+  /** Slide the rest of the way, then make the neighbour the current one without anything moving. */
   const finish = (forward: boolean) => {
-    const w = ref.current?.offsetWidth ?? 360;
-    const out = forward ? -w : w;
     busy.current = true;
     setDragging(false);
-    setDx(out);
+    setDx(forward ? -width() : width());
     window.setTimeout(() => {
-      setDragging(true); // no transition while it jumps to the far side
+      setDragging(true);
       (forward ? onNext : onPrev)();
-      setDx(-out);
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          setDragging(false);
-          setDx(0);
-          window.setTimeout(() => (busy.current = false), 200);
-        }),
-      );
-    }, 160);
+      setDx(0);
+      settle();
+      busy.current = false;
+    }, 230);
   };
-  const g = useRef({ id: -1, x: 0, y: 0, t: 0, horizontal: null as boolean | null, moved: false });
 
   return (
     <div
-      ref={ref}
-      className={`swipeable${dragging ? ' dragging' : ''}`}
-      style={{ transform: dx ? `translateX(${dx}px)` : undefined }}
+      className="swipeable"
       onPointerDown={(e) => {
         if (busy.current || (e.pointerType === 'mouse' && e.button !== 0)) return;
         const edge = 24;
@@ -58,7 +58,7 @@ export function Swipeable({ onPrev, onNext, children }: { onPrev: () => void; on
         if (s.horizontal === null && Math.hypot(mx, my) > 10) {
           s.horizontal = Math.abs(mx) > Math.abs(my) * 1.4;
           if (s.horizontal) {
-            ref.current?.setPointerCapture(e.pointerId);
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
             setDragging(true);
           } else s.id = -1; // scrolling up or down: not a swipe
         }
@@ -73,9 +73,8 @@ export function Swipeable({ onPrev, onNext, children }: { onPrev: () => void; on
         s.id = -1;
         if (!s.horizontal) return;
         const mx = e.clientX - s.x;
-        const w = ref.current?.offsetWidth ?? 360;
         const fast = Math.abs(mx) > 40 && Date.now() - s.t < 250;
-        if (Math.abs(mx) > w / 3 || fast) return finish(mx < 0);
+        if (Math.abs(mx) > width() / 3 || fast) return finish(mx < 0);
         setDragging(false);
         setDx(0);
       }}
@@ -93,7 +92,19 @@ export function Swipeable({ onPrev, onNext, children }: { onPrev: () => void; on
         }
       }}
     >
-      {children}
+      {head}
+      <div className="swipe-view" ref={view}>
+        <div className={`swipe-track${dragging ? ' dragging' : ''}`} style={{ transform: dx ? `translateX(${dx}px)` : undefined }}>
+          {([-1, 0, 1] as const).map((o) => {
+            const p = panel(o);
+            return (
+              <div key={p.key} className={`swipe-panel${o ? (o < 0 ? ' side prev' : ' side next') : ''}`} aria-hidden={o ? true : undefined} inert={o ? true : undefined}>
+                {p.node}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
