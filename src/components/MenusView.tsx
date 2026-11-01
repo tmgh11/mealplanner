@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Icon, Seg, Sheet, toast } from './ui';
-import { WhoSwitch, WhoTag, useView } from './WhoSwitch';
+import { WhoTag, useView } from './WhoSwitch';
 import { MealChip } from './MealChip';
 import { MealEditor } from './MealEditor';
 import { AddToCalendarSheet } from './MenuSheets';
@@ -31,7 +31,6 @@ export function MenusView() {
 
   return (
     <>
-      <WhoSwitch />
       <div className="btn-row" style={{ margin: '12px 0 6px' }}>
         <button className="btn small grow-btn" onClick={() => setImporting(true)}>
           <Icon name="upload" size={18} /> Import spreadsheet

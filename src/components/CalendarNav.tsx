@@ -150,7 +150,7 @@ export function DateStrip({ selected, today, onPick, hasMeals }: { selected: str
             className={`date-pill${d === selected ? ' on' : ''}${d === today ? ' today' : ''}${d < today ? ' past' : ''}${first ? ' first' : ''}`}
             onClick={() => onPick(d)}
           >
-            <span className="dp-day">{first ? MONTH(d) : SHORT(d)}</span>
+            <span className="dp-day">{d === today ? 'Today' : first ? MONTH(d) : SHORT(d)}</span>
             <span className="dp-num">{fromISO(d).getDate()}</span>
             <span className={`dp-dot${hasMeals(d) ? ' has' : ''}`} />
           </button>

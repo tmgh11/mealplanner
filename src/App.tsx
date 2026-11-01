@@ -7,6 +7,7 @@ import { ShoppingView } from './components/ShoppingView';
 import { FoodsView } from './components/FoodsView';
 import { SettingsView } from './components/SettingsView';
 import { Icon, ToastHost } from './components/ui';
+import { PersonFilter } from './components/WhoSwitch';
 import { store, useStore } from './lib/store';
 import { timesFromNotes } from './lib/times';
 import { moveExtrasToNotes } from './lib/method';
@@ -93,12 +94,15 @@ export default function App() {
           <h1>{TITLES[tab]}</h1>
         )}
         <span className="top-actions">
+          {(tab === 'calendar' || tab === 'shopping' || tab === 'recipes' || tab === 'menus') && (
+            <PersonFilter
+              value={tab === 'shopping' ? device.shopView ?? 'both' : device.view ?? device.me}
+              onChange={(v) => store.setDevice(tab === 'shopping' ? { shopView: v } : { view: v })}
+            />
+          )}
           <button className="sync-pill" onClick={() => go('settings')} aria-label={`Sync status: ${pill}`}>
             <span className={`dot ${dot}`} />
             {pill}
-          </button>
-          <button className={`icon-btn top-settings${tab === 'settings' ? ' on' : ''}`} onClick={() => go('settings')} aria-label="Settings">
-            <Icon name="settings" size={20} />
           </button>
         </span>
       </header>
@@ -113,11 +117,12 @@ export default function App() {
       </main>
 
       <nav className="tabbar" aria-label="Main">
-        <div className="tabbar-inner" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="tabbar-inner" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
           <TabBtn active={tab === 'calendar'} onClick={() => go('calendar')} icon="calendar" label="Calendar" />
           <TabBtn active={tab === 'shopping'} onClick={() => go('shopping')} icon="cart" label="Shopping" />
           <TabBtn active={tab === 'recipes'} onClick={() => go('recipes')} icon="book" label="Recipes" />
           <TabBtn active={tab === 'menus'} onClick={() => go('menus')} icon="list" label="Menus" />
+          <TabBtn active={tab === 'settings' || tab === 'foods'} onClick={() => go('settings')} icon="settings" label="Settings" />
         </div>
       </nav>
       <ToastHost />
@@ -125,7 +130,7 @@ export default function App() {
   );
 }
 
-function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: 'book' | 'globe' | 'list' | 'calendar' | 'cart'; label: string }) {
+function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: 'book' | 'globe' | 'list' | 'calendar' | 'cart' | 'settings'; label: string }) {
   return (
     <button className={`tab${active ? ' active' : ''}`} onClick={onClick} aria-current={active ? 'page' : undefined}>
       <Icon name={icon} size={22} />

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { HoldButton, Icon, Seg, Sheet, toast } from './ui';
-import { WhoSwitch } from './WhoSwitch';
 import { newId, store, useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { addDays, fromISO, isISODate, today } from '../lib/dates';
@@ -81,7 +80,6 @@ export function ShoppingView() {
 
   return (
     <>
-      <WhoSwitch value={view} onChange={(v) => store.setDevice({ shopView: v })} />
       <form
         className="search shop-add"
         onSubmit={(e) => {

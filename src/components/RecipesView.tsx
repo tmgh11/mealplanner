@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Icon, Seg, Sheet } from './ui';
-import { WhoSwitch, WhoTag, useView } from './WhoSwitch';
+import { WhoTag, useView } from './WhoSwitch';
 import { RecipeEditor } from './RecipeEditor';
 import { RecipeView } from './RecipeView';
 import { useStore } from '../lib/store';
@@ -48,7 +48,6 @@ export function RecipesView({ incoming, onIncomingUsed }: { incoming?: string; o
 
   return (
     <>
-      <WhoSwitch />
       <div className="search-row">
         <label className="search">
           <Icon name="search" size={18} />

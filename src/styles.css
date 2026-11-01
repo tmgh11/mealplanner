@@ -803,8 +803,7 @@ button.step:active { background: var(--surface-2); }
 .cal-title { display: flex; flex-direction: column; min-width: 0; }
 .cal-title strong { font-size: 22px; letter-spacing: -0.01em; line-height: 1.2; }
 .cal-title span { font-size: 14px; color: var(--muted); font-weight: 550; }
-.today-btn { flex: none; width: auto; padding: 0 16px; }
-.today-btn.hidden { visibility: hidden; }
+
 .swipeable { min-height: 55vh; touch-action: pan-y; transition: transform 0.2s ease; will-change: transform; }
 .swipeable.dragging { transition: none; user-select: none; -webkit-user-select: none; }
 @keyframes slide-from-right { from { transform: translateX(28%); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -815,3 +814,45 @@ button.step:active { background: var(--surface-2); }
 .swipe-hint { text-align: center; font-size: 12.5px; color: var(--muted); margin: 10px 0 0; }
 .btn-row.add-meal { margin-top: 10px; }
 main { overflow-x: clip; }
+
+/* ---------- Top bar person filter ---------- */
+.person-filter .more-menu { right: 0; min-width: 200px; }
+.pf-btn {
+  height: 38px; display: flex; align-items: center; gap: 4px; padding: 0 9px 0 7px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-2); cursor: pointer;
+}
+.pf-dot {
+  width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; flex: none;
+  font-size: 12px; font-weight: 750; color: #fff; background: var(--shared);
+}
+.pf-dot.tom { background: var(--tom); }
+.pf-dot.nuria { background: var(--nuria); }
+.pf-dot.both { background: linear-gradient(90deg, var(--tom) 50%, var(--nuria) 50%); }
+.pf-dot.overlap { margin-left: -8px; box-shadow: 0 0 0 2px var(--surface); }
+
+/* ---------- Calendar: one line on top, weeks, the end of the page ---------- */
+.cal-row { display: flex; align-items: center; gap: 8px; margin: 10px 0 10px; min-height: 40px; }
+.cal-month { flex: 1; min-width: 0; font-size: 21px; font-weight: 750; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.today-btn {
+  flex: none; height: 34px; display: flex; align-items: center; gap: 3px; padding: 0 12px 0 9px; border: 0; border-radius: 999px;
+  background: var(--tom-soft); color: var(--tom); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
+}
+.today-btn.hidden { visibility: hidden; }
+.cal-mode { flex: none; width: 124px; }
+.cal-mode .seg { padding: 3px; border-radius: 11px; }
+.cal-mode .seg button { min-height: 32px; padding: 0; font-size: 13.5px; border-radius: 8px; }
+.date-pill.today:not(.on) .dp-day { color: var(--tom); font-weight: 750; }
+.week-strip { display: flex; gap: 8px; align-items: stretch; height: 62px; margin: 0 -16px 12px; overflow: hidden; }
+.ws-side, .ws-now { display: flex; flex-direction: column; justify-content: center; border-radius: 16px; line-height: 1.25; }
+.ws-side {
+  flex: 0 0 84px; border: 0; background: var(--surface-2); color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; padding: 0 12px; white-space: nowrap; overflow: hidden;
+}
+.ws-side.prev { margin-left: -38px; align-items: flex-end; text-align: right; }
+.ws-side.next { margin-right: -38px; align-items: flex-start; }
+.ws-side strong { font-weight: 700; color: var(--text-2); }
+.ws-now { flex: 1; min-width: 0; align-items: center; background: var(--ink); color: var(--on-ink); }
+.ws-now strong { font-size: 17px; font-weight: 750; }
+.ws-now span { font-size: 14px; opacity: 0.8; font-weight: 550; }
+.cal-end { margin-top: 18px; display: flex; flex-direction: column; gap: 4px; }
+.cal-end .clear-all { margin-top: 10px; }
+.clear-all .hold-label { justify-content: center; }

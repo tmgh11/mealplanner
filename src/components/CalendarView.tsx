@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { HoldButton, Icon, MoreMenu, Seg, Sheet, toast } from './ui';
-import { WhoSwitch, useView } from './WhoSwitch';
+import { HoldButton, Icon, Seg, toast } from './ui';
+import { useView } from './WhoSwitch';
 import { MealChip } from './MealChip';
 import { DateStrip, Swipeable, dayDiff } from './CalendarNav';
 import { MealEditor } from './MealEditor';
@@ -34,7 +34,7 @@ export function CalendarView() {
   };
   const start = weekStart(selected);
   const [editing, setEditing] = useState<Editing>(null);
-  const [sheet, setSheet] = useState<'add-menu' | 'save-menu' | 'clear' | null>(null);
+  const [sheet, setSheet] = useState<'add-menu' | 'save-menu' | null>(null);
   const [showPast, setShowPast] = useState(false);
 
   const days = daysFrom(start, 7);
@@ -77,16 +77,12 @@ export function CalendarView() {
     setSelected(addDays(selected, n));
     setShowPast(false);
   };
-  // "Today", "Tomorrow"… for days; "This week", "Next week"… for weeks
-  const near = (n: number, words: [string, string, string]) => (n === 0 ? words[0] : n === 1 ? words[1] : n === -1 ? words[2] : null);
-  const title =
-    mode === 'day'
-      ? near(dayDiff(t, selected), ['Today', 'Tomorrow', 'Yesterday']) ?? fromISO(selected).toLocaleDateString('en-GB', { weekday: 'long' })
-      : near(dayDiff(weekStart(t), start) / 7, ['This week', 'Next week', 'Last week']) ?? `Week of ${fromISO(start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-  const sub =
-    mode === 'day'
-      ? fromISO(selected).toLocaleDateString('en-GB', { weekday: dayDiff(t, selected) >= -1 && dayDiff(t, selected) <= 1 ? 'long' : undefined, day: 'numeric', month: 'long', ...(selected.slice(0, 4) !== t.slice(0, 4) ? { year: 'numeric' } : {}) })
-      : rangeLabel(start, addDays(start, 6));
+  // the month (or months) on screen, with the year when it isn't this one
+  const monthOf = (d: string) => fromISO(d).toLocaleDateString('en-GB', { month: 'long', ...(d.slice(0, 4) !== t.slice(0, 4) ? { year: 'numeric' } : {}) });
+  const month =
+    mode === 'day' || monthOf(start) === monthOf(addDays(start, 6))
+      ? monthOf(mode === 'day' ? selected : start)
+      : `${fromISO(start).toLocaleDateString('en-GB', { month: 'short' })} – ${fromISO(addDays(start, 6)).toLocaleDateString('en-GB', { month: 'short' })}`;
   // the week view, this week: days already gone fold away behind one line
   const past = isThisWeek ? days.filter((d) => d < t) : [];
   const weekDays = showPast ? days : days.filter((d) => !past.includes(d));
@@ -111,31 +107,14 @@ export function CalendarView() {
 
   return (
     <>
-      <WhoSwitch />
-      <div className="cal-bar">
-        <Seg<'day' | 'week'> value={mode} onChange={(m) => store.setDevice({ calMode: m })} options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }]} />
-        <MoreMenu
-          label="Calendar options"
-          items={[
-            { label: 'Add a menu', icon: 'list', run: () => setSheet('add-menu') },
-            { label: 'Save as a menu', icon: 'download', run: () => setSheet('save-menu') },
-            {
-              label: `Clear ${view === 'both' ? '' : `${settings.names[view]}’s meals `}${mode === 'day' ? 'this day' : 'this week'}`,
-              icon: 'trash',
-              danger: true,
-              run: () => setSheet('clear'),
-            },
-          ]}
-        />
-      </div>
-      <div className="cal-head">
-        <div className="cal-title">
-          <strong>{title}</strong>
-          <span>{sub}</span>
-        </div>
-        <button className={`btn small today-btn${atToday ? ' hidden' : ''}`} onClick={goToday} tabIndex={atToday ? -1 : 0} aria-hidden={atToday}>
-          Today
+      <div className="cal-row">
+        <strong className="cal-month">{month}</strong>
+        <button className={`today-btn${atToday ? ' hidden' : ''}`} onClick={goToday} tabIndex={atToday ? -1 : 0} aria-hidden={atToday}>
+          <Icon name="left" size={13} stroke={3} /> Today
         </button>
+        <div className="cal-mode">
+          <Seg<'day' | 'week'> value={mode} onChange={(m) => store.setDevice({ calMode: m })} options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }]} />
+        </div>
       </div>
 
       {mode === 'day' ? (
@@ -157,8 +136,11 @@ export function CalendarView() {
             </div>
           </Swipeable>
           {!device.swiped && <p className="swipe-hint">Swipe the day sideways to move between days</p>}
+          <ClearMeals dates={[selected]} view={view} label={fromISO(selected).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace(',', '')} />
         </>
       ) : (
+        <>
+        <WeekStrip start={start} today={t} onMove={move} />
         <Swipeable onPrev={() => move(-7)} onNext={() => move(7)}>
           <div key={start} className={dir ? `slide-in-${dir}` : undefined}>
           {past.length > 0 && (
@@ -205,6 +187,13 @@ export function CalendarView() {
           })}
           </div>
         </Swipeable>
+        <div className="cal-end">
+          <button className="btn primary" onClick={() => setSheet('save-menu')}>
+            <Icon name="download" size={18} /> Save this week as a menu
+          </button>
+          <ClearMeals dates={weekDays} view={view} label="week" />
+        </div>
+        </>
       )}
       {totalsFor.length > 0 && <p className="small-print">* some meals on that day have no numbers yet (notes, or ingredients without a food).</p>}
 
@@ -220,7 +209,6 @@ export function CalendarView() {
       )}
       {sheet === 'add-menu' && <AddMenuSheet defaultStart={mode === 'day' ? selected : start < t ? t : start} onClose={() => setSheet(null)} />}
       {sheet === 'save-menu' && <SaveAsMenuSheet start={start} onClose={() => setSheet(null)} />}
-      {sheet === 'clear' && <ClearMealsSheet dates={mode === 'day' ? [selected] : weekDays} view={view} onClose={() => setSheet(null)} />}
     </>
   );
 }
@@ -271,20 +259,14 @@ function DayCard({
           </div>
         </div>
       ))}
-      {slots.length === 0 ? (
-        <div className="btn-row add-meal">
-          <button className="btn grow-btn" onClick={() => onAdd()}>
-            <Icon name="plus" size={18} /> Add a meal
-          </button>
-          <button className="btn grow-btn" onClick={onAddMenu}>
-            <Icon name="list" size={18} /> Add a menu
-          </button>
-        </div>
-      ) : (
-        <button className="btn add-meal" onClick={() => onAdd()}>
+      <div className="btn-row add-meal">
+        <button className="btn grow-btn" onClick={() => onAdd()}>
           <Icon name="plus" size={18} /> Add a meal
         </button>
-      )}
+        <button className="btn grow-btn" onClick={onAddMenu}>
+          <Icon name="list" size={18} /> Add a menu
+        </button>
+      </div>
     </section>
   );
 }
@@ -294,47 +276,58 @@ function DayCard({
  * In one person's view their own meals go, and shared meals become the other person's (they
  * may still be eating it). In Both, everything goes. Needs a press and hold; can be undone.
  */
-function ClearMealsSheet({ dates, view, onClose }: { dates: string[]; view: Who; onClose: () => void }) {
+function ClearMeals({ dates, view, label }: { dates: string[]; view: Who; label: string }) {
   const { mealsByDate, settings } = useStore();
   const all = dates.flatMap((d) => mealsByDate.get(d) ?? []);
   const other: Person | null = view === 'tom' ? 'nuria' : view === 'nuria' ? 'tom' : null;
   const remove = all.filter((m) => view === 'both' || m.who === view);
   const handOver = other ? all.filter((m) => m.who === 'both') : [];
-  const range = dates.length === 1 ? dayLabel(dates[0]) : dates.length ? rangeLabel(dates[0], dates[dates.length - 1]) : '';
-  const whose = view === 'both' ? 'all meals' : `${settings.names[view]}’s meals`;
   const n = remove.length + handOver.length;
+  if (!n) return null;
+  const whose = view === 'both' ? '' : `${settings.names[view]}’s `;
+  const what = label === 'week' ? `${whose || 'this '}week` : `${whose}${label}`;
 
   const clear = () => {
     store.put(...remove.map((m) => ({ ...m, deleted: true })), ...handOver.map((m) => ({ ...m, who: other! })));
     toast(`Cleared ${n} meal${n === 1 ? '' : 's'}`, { label: 'Undo', run: () => store.put(...remove.map((m) => ({ ...m, deleted: false })), ...handOver) }, 10000);
-    onClose();
   };
 
   return (
-    <Sheet
-      title={dates.length === 1 ? 'Clear this day?' : 'Clear this week?'}
-      onClose={onClose}
-      footer={
-        n ? (
-          <HoldButton className="danger-fill" onDone={clear} holdingLabel="Keep holding to clear…">
-            Hold to clear {n} meal{n === 1 ? '' : 's'}
-          </HoldButton>
-        ) : (
-          <button className="btn" onClick={onClose}>Nothing to clear</button>
-        )
-      }
-    >
-      <p className="text-2" style={{ marginTop: 0 }}>
-        Removes {whose} on <strong>{range}</strong>
-        {remove.length ? ` (${remove.length})` : ''}.
+    <div className="clear-all">
+      <HoldButton className="danger-soft" onDone={clear} holdingLabel="Keep holding to clear…">
+        <Icon name="trash" size={18} /> Hold to clear {what}
+      </HoldButton>
+      <p className="small-print">
+        {view === 'both' ? `Removes all ${n} meal${n === 1 ? '' : 's'} shown.` : `Removes ${settings.names[view]}’s meals; ${settings.names[other!]}’s stay.`}
+        {handOver.length ? ` ${handOver.length} shared meal${handOver.length === 1 ? '' : 's'} stay${handOver.length === 1 ? 's' : ''} on ${settings.names[other!]}’s calendar.` : ''} You can undo straight afterwards.
       </p>
-      {other && handOver.length > 0 && (
-        <div className="note">
-          {handOver.length} shared meal{handOver.length === 1 ? '' : 's'} will stay on the calendar for {settings.names[other]} only.
-        </div>
-      )}
-      {other && <p className="small-print">{settings.names[other]}’s own meals aren’t touched.</p>}
-      <p className="small-print">You can undo straight afterwards.</p>
-    </Sheet>
+    </div>
+  );
+}
+
+/** The week line: this week in the middle, the weeks either side peeking in. Tap one to go there. */
+function WeekStrip({ start, today, onMove }: { start: string; today: string; onMove: (days: number) => void }) {
+  const name = (ws: string) => {
+    const n = dayDiff(weekStart(today), ws) / 7;
+    return n === 0 ? 'This week' : n === 1 ? 'Next week' : n === -1 ? 'Last week' : n > 0 ? `In ${n} weeks` : `${-n} weeks ago`;
+  };
+  const range = (ws: string) => rangeLabel(ws, addDays(ws, 6));
+  const prev = addDays(start, -7);
+  const next = addDays(start, 7);
+  return (
+    <div className="week-strip">
+      <button className="ws-side prev" onClick={() => onMove(-7)} aria-label={`Go to ${name(prev)}, ${range(prev)}`}>
+        <strong>{name(prev)}</strong>
+        <span>{range(prev)}</span>
+      </button>
+      <div className="ws-now">
+        <strong>{name(start)}</strong>
+        <span>{fromISO(start).toLocaleDateString('en-GB', { day: 'numeric' })} – {fromISO(addDays(start, 6)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</span>
+      </div>
+      <button className="ws-side next" onClick={() => onMove(7)} aria-label={`Go to ${name(next)}, ${range(next)}`}>
+        <strong>{name(next)}</strong>
+        <span>{range(next)}</span>
+      </button>
+    </div>
   );
 }
