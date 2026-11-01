@@ -877,3 +877,6 @@ button.step:active { background: var(--surface-2); }
 .cal-end { margin-top: 18px; display: flex; flex-direction: column; gap: 4px; }
 .cal-end .clear-all { margin-top: 10px; }
 .clear-all .hold-label { justify-content: center; }
+
+/* "of which sugars" sits under carbohydrate, as on a food label */
+.sub-nutrient { padding-left: 16px; color: var(--text-2); }

@@ -10,6 +10,9 @@ const LABELS: Record<NutrientKey, string> = {
   kcal: 'Energy (kcal)', protein: 'Protein (g)', carbs: 'Carbohydrate (g)', fat: 'Fat (g)', fibre: 'Fibre (g)', sugars: 'of which sugars (g)', salt: 'Salt (g)',
 };
 
+/** In the order a UK food label lists them, so values can be copied straight down the packet. */
+const LABEL_ORDER: NutrientKey[] = ['kcal', 'fat', 'carbs', 'sugars', 'fibre', 'protein', 'salt'];
+
 export function FoodsView() {
   const { settings } = useStore();
   const foods = useFoods();
@@ -81,9 +84,9 @@ function FoodDetail({ food, onClose }: { food: Food; onClose: () => void }) {
         {food.source === 'custom' && <>One of our own foods{food.editedBy ? `, added by ${settings.names[food.editedBy]}` : ''}. Per 100 g.</>}
       </p>
       <div className="card set-group">
-        {NUTRIENT_KEYS.map((k) => (
+        {LABEL_ORDER.map((k) => (
           <div key={k} className="set-row" style={{ padding: '11px 16px' }}>
-            <span className="grow">{LABELS[k]}</span>
+            <span className={`grow${k === 'sugars' ? ' sub-nutrient' : ''}`}>{LABELS[k]}</span>
             {food.original && food.original[k] !== food.per100[k] && <span className="muted num" style={{ textDecoration: 'line-through' }}>{k === 'kcal' ? fmtKcal(food.original[k]) : fmtG(food.original[k])}</span>}
             <strong className="num">{k === 'kcal' ? fmtKcal(food.per100[k]) : fmtG(food.per100[k])}</strong>
           </div>
@@ -168,9 +171,9 @@ export function FoodEditor({ food, startName, onClose, onSaved }: { food?: Food;
       )}
       <p className="small-print" style={{ marginTop: 0 }}>Per 100 g. Leave blank if unknown.</p>
       <div className="card set-group">
-        {NUTRIENT_KEYS.map((k) => (
+        {LABEL_ORDER.map((k) => (
           <label key={k} className="set-row" style={{ padding: '6px 8px 6px 16px' }}>
-            <span className="grow">{LABELS[k]}</span>
+            <span className={`grow${k === 'sugars' ? ' sub-nutrient' : ''}`}>{LABELS[k]}</span>
             <input
               className="input num"
               style={{ width: 110, textAlign: 'right', minHeight: 44 }}
