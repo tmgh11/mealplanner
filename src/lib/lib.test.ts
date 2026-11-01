@@ -189,6 +189,21 @@ describe('alternatives and unit-less items', () => {
   });
 });
 
+describe('brands and Spanish words', () => {
+  const pick = (t: string) => {
+    const r = resolveLine(t, foods).ingredient;
+    return [foods.find((f) => f.id === r.foodId)?.name, r.grams];
+  };
+  it('reads Fage as Fage, 0% unless it says otherwise, 150 g a pot', () => {
+    expect(pick('1/2 fage yoghurt')).toEqual(['Fage Total 0%, Greek yogurt, strained', 75]);
+    expect(pick('fage 5%')).toEqual(['Fage Total 5%, Greek yogurt, strained, full fat', 150]);
+    expect(pick('greek yoghurt')[0]).toBe('Yogurt, Greek style, plain');
+  });
+  it('reads trozos de carne as lean beef', () => {
+    expect(pick('100g trozos de carne')).toEqual(['Beef, lean, average, raw', 100]);
+  });
+});
+
 describe('drinks', () => {
   const name = (id?: string | null) => foods.find((f) => f.id === id)?.name;
   const food = (t: string) => {

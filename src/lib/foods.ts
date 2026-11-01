@@ -49,6 +49,7 @@ const DEFAULT_PORTIONS: [RegExp, Portion[]][] = [
   [/^stock cubes/i, [{ unit: 'cube', grams: 10 }]],
   [/^chicken, light meat, raw/i, [{ unit: 'each', grams: 150 }, { unit: 'slice', grams: 20 }]],
   [/^turkey, light meat/i, [{ unit: 'slice', grams: 20 }]],
+  [/fage/i, [{ unit: 'pot', grams: 150 }, { unit: 'each', grams: 150 }]],
   [/^yogurt/i, [{ unit: 'pot', grams: 125 }, { unit: 'each', grams: 125 }]],
   [/^cheese, spreadable/i, [{ unit: 'triangle', grams: 17.5 }]],
   [/^rusks/i, [{ unit: 'each', grams: 17 }]],
@@ -65,6 +66,9 @@ const DEFAULT_PORTIONS: [RegExp, Portion[]][] = [
 const EXTRA_FOODS: { id: string; name: string; group: string; per100: Nutrients }[] = [
   // a typical chilled oat drink (e.g. Oatly Original): 46 kcal per 100 ml
   { id: 'extra:oat-drink', name: 'Oat drink (oat milk), typical', group: 'Milk and milk products', per100: { kcal: 46, protein: 1, carbs: 6.7, fat: 1.5, fibre: 0.8, sugars: 4.1, salt: 0.1 } },
+  // Fage Total: strained Greek yogurt, much leaner than CoFID's creamy "Greek style" (133 kcal)
+  { id: 'extra:fage-0', name: 'Fage Total 0%, Greek yogurt, strained', group: 'Milk and milk products', per100: { kcal: 54, protein: 10.3, carbs: 3, fat: 0, fibre: 0, sugars: 3, salt: 0.13 } },
+  { id: 'extra:fage-5', name: 'Fage Total 5%, Greek yogurt, strained, full fat', group: 'Milk and milk products', per100: { kcal: 96, protein: 9, carbs: 3, fat: 5, fibre: 0, sugars: 3, salt: 0.1 } },
 ];
 
 /** Our own foods: a bread or a loaf of any name gets a typical slice until someone sets one. */
@@ -156,7 +160,7 @@ const SYNONYMS: Record<string, string> = {
   aparagus: 'asparagus', 'aparagus tips': 'asparagus', 'asparagus tips': 'asparagus', 'green beans': 'beans green', 'runner beans': 'beans runner',
   'broad beans': 'beans broad', 
   'white fish': 'cod flesh only', 'frozen fish': 'cod flesh only', seafood: 'prawns', 'pork tenderloin': 'pork fillet', 'pork loin': 'pork loin',
-  lomo: 'pork loin', solomillo: 'pork fillet', 'cured ham': 'ham', 'yogurt': 'yogurt plain', 'greek yogurt': 'yogurt greek style plain', 'gf toast': 'bread gluten free', 'gf bread': 'bread gluten free',
+  lomo: 'pork loin', 'trozos de carne': 'beef lean average raw', solomillo: 'pork fillet', 'cured ham': 'ham', 'yogurt': 'yogurt plain', 'greek yogurt': 'yogurt greek style plain', 'gf toast': 'bread gluten free', 'gf bread': 'bread gluten free',
   'wholemeal toast': 'bread wholemeal', toast: 'bread white', 'mango chunks': 'mango', blueberry: 'blueberries', 'brussels sprouts': 'brussels sprouts',
   rusks: 'rusks', chard: 'chard swiss', leeks: 'leeks', leek: 'leeks', spinach: 'spinach', kale: 'curly kale', beetroot: 'beetroot',
   'pickled beetroot': 'beetroot pickled', 'pickled onion': 'onions pickled', pickles: 'gherkins', radish: 'radish red', radishes: 'radish red', lettuce: 'lettuce',

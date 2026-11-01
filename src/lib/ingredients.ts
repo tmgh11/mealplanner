@@ -29,6 +29,8 @@ export function drinkName(name: string): string {
     .replace(/\b(oat|soya|soy|almond|coconut|rice)milk\b/gi, '$1 milk')
     .replace(/^(?:an?\s+)?(?:mug|cup|splash|dash|drop)\s+of\s+/i, '');
   if (/^(cappuccino|latte|flat white|cafe latte|caffe latte)s?$/i.test(n.trim())) return 'coffee cappuccino latte';
+  // Fage: the 0% unless it says full fat (5%)
+  if (/\bfage\b/i.test(n)) return /\b5\s*%|full[- ]fat|whole/i.test(n) ? 'fage total full fat' : 'fage total 0';
   const m = n.match(/^(black |white )?(coffee|tea)\s+with\s+(?:a\s+(?:splash|dash|drop)\s+of\s+)?(oat|soya|soy|almond|semi[- ]skimmed|skimmed|whole|full[- ]fat)?\s*(?:milk|drink)$/i);
   if (m) return `${m[2]} infusion average with ${/whole|full/i.test(m[3] ?? '') ? 'whole' : 'semi-skimmed'} milk`;
   if (/^(black )?(coffee|tea)$/i.test(n.trim())) return `${n.trim().replace(/^black /i, '')} infusion average`;
