@@ -132,16 +132,24 @@ export function fixHeadings<T extends { ingredients: Ingredient[] }>(r: T): T | 
 const DRINK = /\b(coffee|tea|cappuccino|latte|flat white|oat ?milk|oat drink|milk)\b/i;
 
 /**
- * Drinks saved before the app knew about mugs and oat milk ("coffee with oatmilk", "30ml oatmilk")
- * were left without a food or an amount. Fill those in. Anything already matched, or weighed by
- * hand, is left alone. Null if there's nothing to change.
+ * Items left without a food or an amount get another go: a food added since ("Gluten free bread"),
+ * or a typical weight it now has, can fill them in. A food someone already picked is kept (except
+ * for drinks saved before the app knew about mugs and oat milk); anything weighed by hand, or
+ * marked as not counted, is left alone. Null if there's nothing to change.
  */
-export function fillDrinks(ingredients: Ingredient[], foods: Food[]): Ingredient[] | null {
+export function fillUnmatched(ingredients: Ingredient[], foods: Food[]): Ingredient[] | null {
   let changed = false;
   const out = ingredients.map((i) => {
-    if (i.heading || i.gramsSetByHand || (i.foodId && i.grams != null) || !DRINK.test(i.text)) return i;
+    if (i.heading || i.gramsSetByHand || i.foodId === null || (i.foodId && i.grams != null)) return i;
+    if (i.foodId && !DRINK.test(i.text)) {
+      const food = foods.find((f) => f.id === i.foodId);
+      const g = food ? toGrams(parseLine(i.text), food) : null;
+      if (!g) return i;
+      changed = true;
+      return { ...i, grams: Math.round(g.grams * 10) / 10 };
+    }
     const r = resolveLine(i.text, foods).ingredient;
-    if (!r.foodId || r.grams == null) return i;
+    if (!r.foodId || (r.foodId === i.foodId && r.grams == null)) return i;
     changed = true;
     return { ...i, foodId: r.foodId, grams: r.grams, qty: r.qty, unit: r.unit };
   });

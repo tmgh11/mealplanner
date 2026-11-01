@@ -564,15 +564,16 @@ textarea.input { resize: vertical; line-height: 1.4; }
 .slot-meals.two .slot-cell.both { grid-column: 1 / -1; }
 .meal-chip {
   width: 100%; height: 100%; text-align: left; display: flex; flex-direction: column; gap: 3px; padding: 9px 11px; border-radius: var(--radius-xs);
-  background: var(--shared-soft); border-left: 3px solid var(--shared); min-height: 44px;
+  background: var(--shared-soft); border-left: 3px solid var(--shared); min-height: 44px; min-width: 0;
 }
 .meal-chip.tom { background: var(--tom-soft); border-left-color: var(--tom); }
 .meal-chip.nuria { background: var(--nuria-soft); border-left-color: var(--nuria); }
 .meal-chip:active { filter: brightness(0.97); }
 .meal-tags { display: flex; gap: 4px; flex-wrap: wrap; }
 .meal-label { font-size: 11px; font-weight: 700; color: var(--text-2); background: var(--surface); padding: 1px 6px; border-radius: 5px; }
-.meal-title { font-size: 14px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.meal-title { font-size: 14px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .meal-title.items { font-weight: 550; font-size: 13.5px; }
+.meal-check { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; margin-top: 4px; font-size: 12px; font-weight: 700; color: #1f1600; background: #f2b320; padding: 2px 7px; border-radius: 6px; }
 .meal-kcal { font-size: 12px; font-weight: 650; color: var(--text-2); font-variant-numeric: tabular-nums; }
 .add-row { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
 .add-chip {

@@ -12,7 +12,7 @@ import { store, useStore } from './lib/store';
 import type { MealContent } from './lib/types';
 import { timesFromNotes } from './lib/times';
 import { moveExtrasToNotes } from './lib/method';
-import { fillDrinks, fixHeadings } from './lib/ingredients';
+import { fillUnmatched, fixHeadings } from './lib/ingredients';
 import { useFoods } from './lib/useFoods';
 
 type Tab = 'calendar' | 'shopping' | 'recipes' | 'menus' | 'foods' | 'settings';
@@ -38,14 +38,16 @@ export default function App() {
       .filter((r): r is NonNullable<typeof r> => Boolean(r));
     if (moved.length) store.put(...moved);
   }, [loaded, recipes]);
-  // once per start, when the food list is ready: drinks saved without a food or an amount
-  const drinksDone = useRef(false);
+  // when the food list is ready, and whenever a food is added or corrected: fill in items that
+  // had no food or no amount, wherever they are
+  const filledWith = useRef<unknown>(null);
   useEffect(() => {
-    if (!loaded || !foods.ready || drinksDone.current) return;
-    drinksDone.current = true;
+    if (!loaded || !foods.ready || filledWith.current === foods.foods) return;
+    filledWith.current = foods.foods;
+    const list = foods.foods;
     const fix = <T extends { content: MealContent }>(m: T): T | null => {
       if (m.content.type !== 'items') return null;
-      const ingredients = fillDrinks(m.content.ingredients, foods.foods);
+      const ingredients = fillUnmatched(m.content.ingredients, list);
       return ingredients ? { ...m, content: { ...m.content, ingredients } } : null;
     };
     const meals = [...mealsByDate.values()].flat().map(fix).filter((m): m is NonNullable<typeof m> => Boolean(m));
@@ -56,8 +58,11 @@ export default function App() {
         return changed ? { ...menu, days } : null;
       })
       .filter((m): m is NonNullable<typeof m> => Boolean(m));
-    if (meals.length || fixedMenus.length) store.put(...meals, ...fixedMenus);
-  }, [loaded, foods, mealsByDate, menus]);
+    const fixedRecipes = recipes
+      .map((r) => { const ingredients = fillUnmatched(r.ingredients, list); return ingredients ? { ...r, ingredients } : null; })
+      .filter((r): r is NonNullable<typeof r> => Boolean(r));
+    if (meals.length || fixedMenus.length || fixedRecipes.length) store.put(...meals, ...fixedMenus, ...fixedRecipes);
+  }, [loaded, foods, mealsByDate, menus, recipes]);
   // a recipe link shared into the app (Android's Share menu opens ./?url=… or ./?text=…)
   const [incoming, setIncoming] = useState<string | undefined>(() => {
     const q = new URLSearchParams(window.location.search);

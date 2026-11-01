@@ -67,6 +67,12 @@ const EXTRA_FOODS: { id: string; name: string; group: string; per100: Nutrients 
   { id: 'extra:oat-drink', name: 'Oat drink (oat milk), typical', group: 'Milk and milk products', per100: { kcal: 46, protein: 1, carbs: 6.7, fat: 1.5, fibre: 0.8, sugars: 4.1, salt: 0.1 } },
 ];
 
+/** Our own foods: a bread or a loaf of any name gets a typical slice until someone sets one. */
+function ownDefaultPortions(name: string): Portion[] {
+  if (/\b(bread|loaf|toast)\b/i.test(name)) return [{ unit: 'slice', grams: 36 }];
+  return defaultPortions(name);
+}
+
 export function defaultPortions(name: string): Portion[] {
   for (const [re, p] of DEFAULT_PORTIONS) if (re.test(name)) return p;
   return [];
@@ -96,7 +102,7 @@ export function buildFoods(rows: CofidRow[], entries: FoodEntry[]): Food[] {
       name: e.name ?? 'Unnamed food',
       group: 'Our foods',
       per100: { ...EMPTY, ...e.per100 },
-      portions: e.portions ?? [],
+      portions: e.portions?.length ? e.portions : ownDefaultPortions(e.name ?? ''),
       source: 'custom',
       editedBy: e.editedBy,
     });

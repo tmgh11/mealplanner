@@ -8,6 +8,7 @@ import { newId, store, useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { addDays, today } from '../lib/dates';
 import { countMeals, weekStart } from '../lib/plan';
+import { recipeTotals } from '../lib/nutrition';
 import { readXlsx } from '../lib/xlsx';
 import { findMenus, type FoundMenu } from '../lib/importSheet';
 import { SLOT_LABELS, SLOTS, visibleIn, type MealBody, type Menu, type MenuDay, type Slot, type Who } from '../lib/types';
@@ -82,6 +83,19 @@ function MenuEditor({ initial, isNew, onClose, onUse }: { initial: Menu; isNew: 
   const [editing, setEditing] = useState<EditingMeal>(null);
   const dirty = JSON.stringify(m) !== orig;
   const recipe = (id: string) => recipes.find((r) => r.id === id);
+  const foods = useFoods();
+  // items without a food or an amount, so they count for nothing
+  const toCheck = (meal: MealBody): number => {
+    if (!foods.ready) return 0;
+    const c = meal.content;
+    if (c.type === 'items') return recipeTotals(c.ingredients, foods.get).missing.length;
+    if (c.type === 'recipe') {
+      const r = recipe(c.recipeId);
+      return r ? recipeTotals(r.ingredients, foods.get).missing.length : 0;
+    }
+    return 0;
+  };
+  const needCheck = m.days.reduce((n, d) => n + d.meals.filter((x) => toCheck(x) > 0).length, 0);
 
   const setDay = (i: number, day: MenuDay) => setM({ ...m, days: m.days.map((d, j) => (j === i ? day : d)) });
 
@@ -135,6 +149,13 @@ function MenuEditor({ initial, isNew, onClose, onUse }: { initial: Menu; isNew: 
         />
       </div>
 
+      {needCheck > 0 && (
+        <div className="note problem">
+          <Icon name="alert" size={20} />
+          <span>{needCheck} meal{needCheck === 1 ? ' has' : 's have'} items to check.</span>
+        </div>
+      )}
+
       {m.days.map((day, i) => {
         const empty = SLOTS.filter((s) => !day.meals.some((x) => x.slot === s));
         return (
@@ -160,7 +181,7 @@ function MenuEditor({ initial, isNew, onClose, onUse }: { initial: Menu; isNew: 
                   {day.meals.map((meal, j) =>
                     meal.slot === slot ? (
                       <div key={j} className={`slot-cell ${meal.who}`}>
-                        <MealChip meal={meal} recipe={recipe} onClick={() => setEditing({ day: i, index: j, body: meal })} />
+                        <MealChip meal={meal} recipe={recipe} toCheck={toCheck(meal)} onClick={() => setEditing({ day: i, index: j, body: meal })} />
                       </div>
                     ) : null,
                   )}

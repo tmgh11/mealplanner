@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { formatQty, parseLine, splitItems, splitRecipeIngredients } from './parse';
 import { buildFoods, cofidId, findFoods, searchFoods, type CofidRow } from './foods';
 import { kcalPer100Cooked, perCookedGrams, perServing, recipeTotals, toGrams } from './nutrition';
-import { fillDrinks, fixHeadings, resolveLine } from './ingredients';
+import { fillUnmatched, fixHeadings, resolveLine } from './ingredients';
 import { visibleIn, type FoodEntry } from './types';
 import cofid from '../../public/data/cofid.json';
 
@@ -220,13 +220,23 @@ describe('drinks', () => {
     const oat = { id: 'b', text: '30ml oatmilk', grams: 30 };
     const toast = { id: 'c', text: 'slice gf toast' };
     const byHand = { id: 'd', text: 'coffee', gramsSetByHand: true };
-    const out = fillDrinks([coffee, oat, toast, byHand], foods)!;
+    const out = fillUnmatched([coffee, oat, toast, byHand], foods)!;
     expect(out[0]).toMatchObject({ id: 'a', grams: 250 });
     expect(name(out[0].foodId)).toBe('Coffee, infusion, average, with semi-skimmed milk');
     expect(name(out[1].foodId)).toBe('Oat drink (oat milk), typical');
     expect(out[2]).toBe(toast);
     expect(out[3]).toBe(byHand);
-    expect(fillDrinks(out, foods)).toBeNull();
+    expect(fillUnmatched(out, foods)).toBeNull();
+  });
+  it('fills in items once a food of our own is added, with a typical slice for a bread', () => {
+    const withBread = buildFoods((cofid as unknown as { foods: CofidRow[] }).foods, [{ id: 'own1', kind: 'food', name: 'Gluten free bread', per100: { kcal: 250 }, updatedAt: 1 } as never]);
+    const toast = { id: 'c', text: 'slice gf toast' };
+    const picked = { id: 'e', text: '2 slices bread', foodId: 'own1' };
+    const skipped = { id: 'f', text: 'salt to taste', foodId: null };
+    const out = fillUnmatched([toast, picked, skipped], withBread)!;
+    expect(out[0]).toMatchObject({ foodId: 'own1', grams: 36 });
+    expect(out[1]).toMatchObject({ foodId: 'own1', grams: 72 });
+    expect(out[2]).toBe(skipped);
   });
 });
 
