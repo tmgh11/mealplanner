@@ -13,7 +13,6 @@ import { dayLabel, dayTotal, daysFrom, mealTitle, peopleOf, rangeLabel, weekStar
 import { fmtKcal } from '../lib/nutrition';
 import { SLOT_LABELS, SLOTS, visibleIn, type Meal, type MealBody, type Person, type Recipe, type Slot, type Who } from '../lib/types';
 
-const weekday = (d: string) => fromISO(d).toLocaleDateString('en-GB', { weekday: 'short' }).replace(/[.,]/g, '');
 
 type Editing = { meal?: Meal; body: MealBody; date: string } | null;
 
@@ -35,7 +34,6 @@ export function CalendarView() {
   const start = weekStart(selected);
   const [editing, setEditing] = useState<Editing>(null);
   const [sheet, setSheet] = useState<'add-menu' | 'save-menu' | null>(null);
-  const [showPast, setShowPast] = useState(false);
 
   const days = daysFrom(start, 7);
   const lookup = useMemo(() => ({ recipe: (id: string) => recipes.find((r) => r.id === id), food: foods.get }), [recipes, foods]);
@@ -75,7 +73,6 @@ export function CalendarView() {
   const move = (n: number) => {
     if (!device.swiped) store.setDevice({ swiped: true });
     setSelected(addDays(selected, n));
-    setShowPast(false);
   };
   // the month (or months) on screen, with the year when it isn't this one
   const monthOf = (d: string) => fromISO(d).toLocaleDateString('en-GB', { month: 'long', ...(d.slice(0, 4) !== t.slice(0, 4) ? { year: 'numeric' } : {}) });
@@ -84,8 +81,7 @@ export function CalendarView() {
       ? monthOf(mode === 'day' ? selected : start)
       : `${fromISO(start).toLocaleDateString('en-GB', { month: 'short' })} – ${fromISO(addDays(start, 6)).toLocaleDateString('en-GB', { month: 'short' })}`;
   // the week view, this week: days already gone fold away behind one line
-  const past = isThisWeek ? days.filter((d) => d < t) : [];
-  const weekDays = showPast ? days : days.filter((d) => !past.includes(d));
+  const weekDays = days;
 
   const totals = (date: string) =>
     totalsFor.length > 0 && (
@@ -110,7 +106,7 @@ export function CalendarView() {
       <div className="cal-row">
         <strong className="cal-month">{month}</strong>
         <button className={`today-btn${atToday ? ' hidden' : ''}`} onClick={goToday} tabIndex={atToday ? -1 : 0} aria-hidden={atToday}>
-          <Icon name="left" size={13} stroke={3} /> Today
+          <Icon name="left" size={13} stroke={3} /> {mode === 'week' ? 'This week' : 'Today'}
         </button>
         <div className="cal-mode">
           <Seg<'day' | 'week'> value={mode} onChange={(m) => store.setDevice({ calMode: m })} options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }]} />
@@ -140,15 +136,9 @@ export function CalendarView() {
         </>
       ) : (
         <>
-        <WeekStrip start={start} today={t} onMove={move} />
         <Swipeable onPrev={() => move(-7)} onNext={() => move(7)}>
+          <WeekStrip start={start} today={t} onMove={move} />
           <div key={start} className={dir ? `slide-in-${dir}` : undefined}>
-          {past.length > 0 && (
-            <button className="past-toggle" onClick={() => setShowPast((x) => !x)} aria-expanded={showPast}>
-              <Icon name={showPast ? 'up' : 'down'} size={16} />
-              {showPast ? 'Hide earlier days' : past.length === 1 ? `Show ${weekday(past[0])}` : `Show earlier days (${weekday(past[0])}–${weekday(past[past.length - 1])})`}
-            </button>
-          )}
           {weekDays.map((date) => {
             const meals = mealsOn(date);
             return (
@@ -309,24 +299,22 @@ function ClearMeals({ dates, view, label }: { dates: string[]; view: Who; label:
 function WeekStrip({ start, today, onMove }: { start: string; today: string; onMove: (days: number) => void }) {
   const name = (ws: string) => {
     const n = dayDiff(weekStart(today), ws) / 7;
-    return n === 0 ? 'This week' : n === 1 ? 'Next week' : n === -1 ? 'Last week' : n > 0 ? `In ${n} weeks` : `${-n} weeks ago`;
+    return n === 0 ? 'This week' : n === 1 ? 'Next week' : n === -1 ? 'Last week' : '';
   };
   const range = (ws: string) => rangeLabel(ws, addDays(ws, 6));
   const prev = addDays(start, -7);
   const next = addDays(start, 7);
   return (
     <div className="week-strip">
-      <button className="ws-side prev" onClick={() => onMove(-7)} aria-label={`Go to ${name(prev)}, ${range(prev)}`}>
-        <strong>{name(prev)}</strong>
-        <span>{range(prev)}</span>
+      <button className="ws-side prev" onClick={() => onMove(-7)} aria-label={`Go to ${[name(prev), range(prev)].filter(Boolean).join(', ')}`}>
+        {name(prev) ? <><strong>{name(prev)}</strong><span>{range(prev)}</span></> : <strong>{range(prev)}</strong>}
       </button>
       <div className="ws-now">
-        <strong>{name(start)}</strong>
-        <span>{fromISO(start).toLocaleDateString('en-GB', { day: 'numeric' })} – {fromISO(addDays(start, 6)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</span>
+        {name(start) && <strong>{name(start)}</strong>}
+        <span className={name(start) ? undefined : 'ws-range-only'}>{start.slice(5, 7) === addDays(start, 6).slice(5, 7) ? `${fromISO(start).getDate()} – ${fromISO(addDays(start, 6)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}` : range(start)}</span>
       </div>
-      <button className="ws-side next" onClick={() => onMove(7)} aria-label={`Go to ${name(next)}, ${range(next)}`}>
-        <strong>{name(next)}</strong>
-        <span>{range(next)}</span>
+      <button className="ws-side next" onClick={() => onMove(7)} aria-label={`Go to ${[name(next), range(next)].filter(Boolean).join(', ')}`}>
+        {name(next) ? <><strong>{name(next)}</strong><span>{range(next)}</span></> : <strong>{range(next)}</strong>}
       </button>
     </div>
   );

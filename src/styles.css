@@ -710,11 +710,6 @@ button.step:active { background: var(--surface-2); }
 .step.done { opacity: 0.4; }
 .step.done .step-n { background: var(--text); color: var(--bg); }
 .tag-row.bottom { margin-top: 20px; }
-.past-toggle {
-  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin: 4px 0 8px;
-  border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); background: none; color: var(--text-2);
-  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-}
 .day.past { opacity: 0.6; }
 
 /* ---------- Calendar: day and week ---------- */
@@ -853,6 +848,7 @@ main { overflow-x: clip; }
 .ws-now { flex: 1; min-width: 0; align-items: center; background: var(--ink); color: var(--on-ink); }
 .ws-now strong { font-size: 17px; font-weight: 750; }
 .ws-now span { font-size: 14px; opacity: 0.8; font-weight: 550; }
+.ws-now span.ws-range-only { font-size: 17px; font-weight: 750; opacity: 1; }
 .cal-end { margin-top: 18px; display: flex; flex-direction: column; gap: 4px; }
 .cal-end .clear-all { margin-top: 10px; }
 .clear-all .hold-label { justify-content: center; }
