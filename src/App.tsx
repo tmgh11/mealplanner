@@ -42,7 +42,7 @@ export default function App() {
     if (shared) window.history.replaceState(null, '', window.location.pathname);
     return shared;
   });
-  const [tab, setTab] = useState<Tab>(incoming ? 'recipes' : 'calendar');
+  const [tab, setTab] = useState<Tab>(incoming ? 'recipes' : 'shopping');
 
   const go = (t: Tab) => {
     setTab(t);
@@ -118,9 +118,9 @@ export default function App() {
 
       <nav className="tabbar" aria-label="Main">
         <div className="tabbar-inner" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-          <TabBtn active={tab === 'calendar'} onClick={() => go('calendar')} icon="calendar" label="Calendar" />
           <TabBtn active={tab === 'shopping'} onClick={() => go('shopping')} icon="cart" label="Shopping" />
           <TabBtn active={tab === 'recipes'} onClick={() => go('recipes')} icon="book" label="Recipes" />
+          <TabBtn active={tab === 'calendar'} onClick={() => go('calendar')} icon="calendar" label="Calendar" />
           <TabBtn active={tab === 'menus'} onClick={() => go('menus')} icon="list" label="Menus" />
           <TabBtn active={tab === 'settings' || tab === 'foods'} onClick={() => go('settings')} icon="settings" label="Settings" />
         </div>
