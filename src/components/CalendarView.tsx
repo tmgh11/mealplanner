@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { HoldButton, Icon, MoreMenu, Seg, Sheet, toast } from './ui';
 import { WhoSwitch, useView } from './WhoSwitch';
 import { MealChip } from './MealChip';
+import { DateStrip, Swipeable, dayDiff } from './CalendarNav';
 import { MealEditor } from './MealEditor';
 import { useTracking } from './RecipesView';
 import { AddMenuSheet, SaveAsMenuSheet } from './MenuSheets';
@@ -23,8 +24,15 @@ export function CalendarView() {
   const tracking = useTracking();
   const t = today();
   const mode = device.calMode ?? 'day';
-  const [start, setStart] = useState(() => weekStart(t));
-  const [selected, setSelected] = useState(t);
+  const [selected, setSelectedRaw] = useState(t);
+  // which way the last move went, so the new day slides in from the right side
+  const [dir, setDir] = useState<'next' | 'prev' | null>(null);
+  const setSelected = (d: string) => {
+    if (d === selected) return;
+    setDir(d > selected ? 'next' : 'prev');
+    setSelectedRaw(d);
+  };
+  const start = weekStart(selected);
   const [editing, setEditing] = useState<Editing>(null);
   const [sheet, setSheet] = useState<'add-menu' | 'save-menu' | 'clear' | null>(null);
   const [showPast, setShowPast] = useState(false);
@@ -62,15 +70,23 @@ export function CalendarView() {
   };
 
   const isThisWeek = start === weekStart(t);
-  const goWeek = (n: number) => {
-    setStart(addDays(start, 7 * n));
-    setSelected(addDays(selected, 7 * n));
+  const atToday = mode === 'day' ? selected === t : isThisWeek;
+  const goToday = () => setSelected(t);
+  const move = (n: number) => {
+    if (!device.swiped) store.setDevice({ swiped: true });
+    setSelected(addDays(selected, n));
     setShowPast(false);
   };
-  const backToToday = () => {
-    setStart(weekStart(t));
-    setSelected(t);
-  };
+  // "Today", "Tomorrow"… for days; "This week", "Next week"… for weeks
+  const near = (n: number, words: [string, string, string]) => (n === 0 ? words[0] : n === 1 ? words[1] : n === -1 ? words[2] : null);
+  const title =
+    mode === 'day'
+      ? near(dayDiff(t, selected), ['Today', 'Tomorrow', 'Yesterday']) ?? fromISO(selected).toLocaleDateString('en-GB', { weekday: 'long' })
+      : near(dayDiff(weekStart(t), start) / 7, ['This week', 'Next week', 'Last week']) ?? `Week of ${fromISO(start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+  const sub =
+    mode === 'day'
+      ? fromISO(selected).toLocaleDateString('en-GB', { weekday: dayDiff(t, selected) >= -1 && dayDiff(t, selected) <= 1 ? 'long' : undefined, day: 'numeric', month: 'long', ...(selected.slice(0, 4) !== t.slice(0, 4) ? { year: 'numeric' } : {}) })
+      : rangeLabel(start, addDays(start, 6));
   // the week view, this week: days already gone fold away behind one line
   const past = isThisWeek ? days.filter((d) => d < t) : [];
   const weekDays = showPast ? days : days.filter((d) => !past.includes(d));
@@ -96,20 +112,6 @@ export function CalendarView() {
   return (
     <>
       <WhoSwitch />
-      <div className="week-nav">
-        <button className="icon-btn" onClick={() => goWeek(-1)} aria-label="Previous week">
-          <Icon name="left" size={18} />
-        </button>
-        <div className="week-title">
-          <strong>{rangeLabel(start, addDays(start, 6))}</strong>
-          <span className="week-sub">
-            {isThisWeek && (mode === 'week' || selected === t) ? <span className="muted">This week</span> : <button className="link-btn small" onClick={backToToday}>Back to today</button>}
-          </span>
-        </div>
-        <button className="icon-btn" onClick={() => goWeek(1)} aria-label="Next week">
-          <Icon name="right" size={18} />
-        </button>
-      </div>
       <div className="cal-bar">
         <Seg<'day' | 'week'> value={mode} onChange={(m) => store.setDevice({ calMode: m })} options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }]} />
         <MoreMenu
@@ -126,21 +128,21 @@ export function CalendarView() {
           ]}
         />
       </div>
+      <div className="cal-head">
+        <div className="cal-title">
+          <strong>{title}</strong>
+          <span>{sub}</span>
+        </div>
+        <button className={`btn small today-btn${atToday ? ' hidden' : ''}`} onClick={goToday} tabIndex={atToday ? -1 : 0} aria-hidden={atToday}>
+          Today
+        </button>
+      </div>
 
       {mode === 'day' ? (
         <>
-          <div className="date-strip" role="tablist">
-            {days.map((d) => {
-              const n = mealsOn(d).length;
-              return (
-                <button key={d} role="tab" aria-selected={d === selected} className={`date-pill${d === selected ? ' on' : ''}${d === t ? ' today' : ''}${d < t ? ' past' : ''}`} onClick={() => setSelected(d)}>
-                  <span className="dp-day">{weekday(d)}</span>
-                  <span className="dp-num">{fromISO(d).getDate()}</span>
-                  <span className={`dp-dot${n ? ' has' : ''}`} />
-                </button>
-              );
-            })}
-          </div>
+          <DateStrip selected={selected} today={t} onPick={setSelected} hasMeals={(d) => mealsOn(d).length > 0} />
+          <Swipeable onPrev={() => move(-1)} onNext={() => move(1)}>
+            <div key={selected} className={dir ? `slide-in-${dir}` : undefined}>
           <DayCard
             date={selected}
             today={t}
@@ -150,10 +152,15 @@ export function CalendarView() {
             totals={totals(selected)}
             onOpen={(m) => setEditing({ meal: m, body: m, date: selected })}
             onAdd={(slot) => add(selected, slot)}
+            onAddMenu={() => setSheet('add-menu')}
           />
+            </div>
+          </Swipeable>
+          {!device.swiped && <p className="swipe-hint">Swipe the day sideways to move between days</p>}
         </>
       ) : (
-        <>
+        <Swipeable onPrev={() => move(-7)} onNext={() => move(7)}>
+          <div key={start} className={dir ? `slide-in-${dir}` : undefined}>
           {past.length > 0 && (
             <button className="past-toggle" onClick={() => setShowPast((x) => !x)} aria-expanded={showPast}>
               <Icon name={showPast ? 'up' : 'down'} size={16} />
@@ -165,7 +172,7 @@ export function CalendarView() {
             return (
               <section key={date} className={`card day week-day${date === t ? ' today' : ''}${date < t ? ' past' : ''}`}>
                 <header className="day-head">
-                  <button className="day-link" onClick={() => { setSelected(date); store.setDevice({ calMode: 'day' }); }}>
+                  <button className="day-link" onClick={() => { setSelectedRaw(date); setDir(null); store.setDevice({ calMode: 'day' }); }}>
                     <strong>{dayLabel(date)}</strong>
                   </button>
                   {date === t && <span className="today-badge">Today</span>}
@@ -196,7 +203,8 @@ export function CalendarView() {
               </section>
             );
           })}
-        </>
+          </div>
+        </Swipeable>
       )}
       {totalsFor.length > 0 && <p className="small-print">* some meals on that day have no numbers yet (notes, or ingredients without a food).</p>}
 
@@ -210,7 +218,7 @@ export function CalendarView() {
           onClose={() => setEditing(null)}
         />
       )}
-      {sheet === 'add-menu' && <AddMenuSheet defaultStart={mode === 'day' ? (selected < t ? t : selected) : start < t ? t : start} onClose={() => setSheet(null)} />}
+      {sheet === 'add-menu' && <AddMenuSheet defaultStart={mode === 'day' ? selected : start < t ? t : start} onClose={() => setSheet(null)} />}
       {sheet === 'save-menu' && <SaveAsMenuSheet start={start} onClose={() => setSheet(null)} />}
       {sheet === 'clear' && <ClearMealsSheet dates={mode === 'day' ? [selected] : weekDays} view={view} onClose={() => setSheet(null)} />}
     </>
@@ -227,6 +235,7 @@ function DayCard({
   totals,
   onOpen,
   onAdd,
+  onAddMenu,
 }: {
   date: string;
   today: string;
@@ -236,15 +245,12 @@ function DayCard({
   totals: ReactNode;
   onOpen: (m: Meal) => void;
   onAdd: (slot?: Slot) => void;
+  onAddMenu: () => void;
 }) {
   const slots = SLOTS.filter((s) => meals.some((m) => m.slot === s));
   return (
-    <section className={`card day${date === t ? ' today' : ''}`}>
-      <header className="day-head">
-        <strong>{dayLabel(date)}</strong>
-        {date === t && <span className="today-badge">Today</span>}
-        {totals}
-      </header>
+    <section className="card day">
+      {totals && <header className="day-head">{totals}</header>}
       {slots.length === 0 && <p className="day-empty">Nothing planned yet.</p>}
       {slots.map((slot) => (
         <div key={slot} className="slot">
@@ -265,9 +271,20 @@ function DayCard({
           </div>
         </div>
       ))}
-      <button className="btn add-meal" onClick={() => onAdd()}>
-        <Icon name="plus" size={18} /> Add a meal
-      </button>
+      {slots.length === 0 ? (
+        <div className="btn-row add-meal">
+          <button className="btn grow-btn" onClick={() => onAdd()}>
+            <Icon name="plus" size={18} /> Add a meal
+          </button>
+          <button className="btn grow-btn" onClick={onAddMenu}>
+            <Icon name="list" size={18} /> Add a menu
+          </button>
+        </div>
+      ) : (
+        <button className="btn add-meal" onClick={() => onAdd()}>
+          <Icon name="plus" size={18} /> Add a meal
+        </button>
+      )}
     </section>
   );
 }

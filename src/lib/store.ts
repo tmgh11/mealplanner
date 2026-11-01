@@ -22,6 +22,8 @@ export interface DeviceSettings {
   shopView?: Who;
   /** the calendar: one day at a time, or the whole week */
   calMode?: 'day' | 'week';
+  /** has swiped between days at least once (the hint can go) */
+  swiped?: boolean;
   supabaseUrl?: string;
   supabaseKey?: string;
   onboarded?: boolean;
