@@ -96,8 +96,8 @@ export default function App() {
         <span className="top-actions">
           {(tab === 'calendar' || tab === 'shopping' || tab === 'recipes' || tab === 'menus') && (
             <PersonFilter
-              value={tab === 'shopping' ? device.shopView ?? 'both' : device.view ?? device.me}
-              onChange={(v) => store.setDevice(tab === 'shopping' ? { shopView: v } : { view: v })}
+              value={tab === 'shopping' ? device.shopView ?? 'both' : tab === 'recipes' ? device.recipeView ?? 'both' : device.view ?? device.me}
+              onChange={(v) => store.setDevice(tab === 'shopping' ? { shopView: v } : tab === 'recipes' ? { recipeView: v } : { view: v })}
             />
           )}
           <button className="sync-pill" onClick={() => go('settings')} aria-label={`Sync status: ${pill}`}>

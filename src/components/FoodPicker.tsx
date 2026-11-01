@@ -52,7 +52,7 @@ export function FoodPicker({ ingredient, onPick, onClose }: { ingredient: Ingred
         </button>
         <button className="btn" onClick={() => onPick('not-food')}>Don’t count it</button>
       </div>
-      <p className="small-print">Not in the UK data (e.g. gluten-free bread, oat milk)? Add it once from the packet label and it’s matched from then on.</p>
+      <p className="small-print">Not listed? Add it from the packet label.</p>
       {adding && <FoodEditor startName={parsed.name} onClose={() => setAdding(false)} onSaved={(f) => onPick(f)} />}
     </Sheet>
   );

@@ -88,7 +88,7 @@ export function ShoppingView() {
         }}
       >
         <Icon name="plus" size={18} />
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add an item, e.g. milk or 2 tins tomatoes" aria-label="Add an item" enterKeyHint="done" />
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add an item" aria-label="Add an item" enterKeyHint="done" />
         {text.trim() && <button className="btn small primary" type="submit">Add</button>}
       </form>
       <div className="btn-row" style={{ marginBottom: 4 }}>
@@ -101,7 +101,6 @@ export function ShoppingView() {
         <div className="empty">
           <div className="empty-icon"><Icon name="cart" size={26} /></div>
           <p style={{ margin: '0 0 4px', fontWeight: 650, color: 'var(--text)' }}>Nothing on the list</p>
-          <p style={{ margin: 0 }}>Add what’s needed for the meals on the calendar, add a recipe from its page, or type things in above.</p>
         </div>
       )}
 
@@ -133,7 +132,6 @@ export function ShoppingView() {
 /** Clearing everything, at the foot of the list: needs a press and hold, and can be undone. */
 function ClearAll({ items, view }: { items: ShopItem[]; view: Who }) {
   const { settings } = useStore();
-  const toBuy = items.filter((i) => !i.checked).length;
   const other: Person | null = view === 'tom' ? 'nuria' : view === 'nuria' ? 'tom' : null;
   // in one person's view, lines that are also on the other person's list
   const shared = other ? items.filter((i) => shows(i, other)).length : 0;
@@ -148,11 +146,11 @@ function ClearAll({ items, view }: { items: ShopItem[]; view: Who }) {
       <HoldButton className="danger-soft" onDone={clear} holdingLabel="Keep holding to clear…">
         <Icon name="trash" size={18} /> Hold to clear {whose}
       </HoldButton>
-      <p className="small-print">
-        Removes the {items.length} item{items.length === 1 ? '' : 's'} shown here{toBuy ? `, ${toBuy} not yet ticked` : ''}
-        {other && shared ? `. ${shared} of them ${shared === 1 ? 'is' : 'are'} on ${settings.names[other]}’s list too` : ''}
-        {other && !shared ? `. ${settings.names[other]}’s items stay` : ''}. You can undo straight afterwards.
-      </p>
+      {other && (
+        <p className="small-print">
+          {shared ? `${shared} of these ${shared === 1 ? 'is' : 'are'} on ${settings.names[other]}’s list too.` : `${settings.names[other]}’s items stay.`}
+        </p>
+      )}
     </div>
   );
 }
@@ -198,7 +196,7 @@ function GroupSheet({ group, onClose }: { group: ShopGroup; onClose: () => void 
     >
       <p className="text-2" style={{ marginTop: 0, fontSize: 14 }}>
         {fmtAmount(items.map((i) => (amounts[i.id] != null ? { ...i, ...(parseAmount(amounts[i.id]) ?? {}) } : i))) || 'No amount'} in total
-        {items.length > 1 ? `, from ${items.length} places` : ''}. Tap an amount to change it.
+        {items.length > 1 ? `, from ${items.length} places` : ''}.
       </p>
       <div className="card set-group">
         {items.map((i) => (
@@ -306,11 +304,10 @@ function FromCalendarSheet({ onClose }: { onClose: () => void }) {
       {plan && (
         <div className="note">
           {plan.meals ? `${plan.meals} meal${plan.meals === 1 ? '' : 's'} to shop for.` : 'No meals with ingredients in those days.'}
-          {skipped.length ? ` Skipping ${skipped.join(' and ')} (nothing to buy).` : ''}
+          {skipped.length ? ` Skipping ${skipped.join(' and ')}.` : ''}
           {plan.already ? ` ${plan.already} meal${plan.already === 1 ? ' is' : 's are'} already on the list.` : ''}
         </div>
       )}
-      <p className="small-print">Amounts are scaled to who’s eating: a meal for both of you counts twice.</p>
       {choosing && plan && (
         <ChooseItemsSheet
           title="Choose items"
@@ -361,7 +358,7 @@ export function ChooseItemsSheet({ title, items, note, onClose, onAdded }: { tit
       }
     >
       <p className="text-2" style={{ marginTop: 0, fontSize: 14 }}>
-        {note ? `${note} ` : ''}Untick anything you already have at home.
+        {note}
       </p>
       {aisles.map((a) => (
         <section key={a.aisle}>

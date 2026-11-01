@@ -162,15 +162,13 @@ export function RecipeEditor({
                 {(problem.kind === 'no-recipe' || problem.kind === 'site') && <> You can type it in below instead.</>}
               </span>
             </div>
-          ) : (
-            <p className="small-print" style={{ margin: '6px 2px 0' }}>Or leave this empty and type the recipe in below.</p>
-          )}
+          ) : null}
         </div>
       )}
       {filled && (
         <div className="note" style={{ marginBottom: 14 }}>
-          Filled in from {filled.site ?? 'the website'}. {filled.matched} of {filled.lines} ingredients matched to UK food data
-          {filled.matched < filled.lines ? '; you can pick foods for the rest below' : ''}. Check it over, then save.
+          Filled in from {filled.site ?? 'the website'}.
+          {filled.matched < filled.lines ? ` ${filled.lines - filled.matched} ingredient${filled.lines - filled.matched === 1 ? '' : 's'} need${filled.lines - filled.matched === 1 ? 's' : ''} a food match.` : ''}
         </div>
       )}
       {already && (
@@ -221,7 +219,7 @@ export function RecipeEditor({
         </div>
       </div>
       <p className="small-print" style={{ marginTop: -8, marginBottom: 14 }}>
-        Weigh the finished pot to serve portions by weight; each of you can then weigh your own plate.
+        For serving by weight.
       </p>
       <div className="inline times">
         <TimeField id="tp" label="Prep" value={r.prepMins} onChange={(prepMins) => set({ prepMins })} />
@@ -252,7 +250,7 @@ export function RecipeEditor({
 
       <div className="field" style={{ marginTop: 18 }}>
         <label htmlFor="rm">Method</label>
-        <textarea id="rm" className="input" rows={6} value={r.method} onChange={(e) => set({ method: e.target.value })} placeholder={'Leave a blank line between steps.\n\n_For the sauce_ (underscores) makes a heading.'} />
+        <textarea id="rm" className="input" rows={6} value={r.method} onChange={(e) => set({ method: e.target.value })} placeholder={'Step one…\n\nStep two…'} />
           <p className="small-print" style={{ margin: '6px 2px 0' }}>Leave a blank line between steps. Put a heading between underscores, like _For the sauce_.</p>
       </div>
       <div className="field">

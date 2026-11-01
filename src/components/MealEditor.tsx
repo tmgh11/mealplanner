@@ -168,11 +168,11 @@ export function MealEditor({
 
       {m.content.type === 'items' && (
         <>
-          <p className="small-print" style={{ marginTop: -6 }}>Amounts are for one person; {m.who === 'both' ? 'each of you has this.' : 'add a separate meal for the other person if theirs differs.'}</p>
+          <p className="small-print" style={{ marginTop: -6 }}>Amounts are per person.</p>
           <IngredientsEditor
             ingredients={m.content.ingredients}
             onChange={(ingredients) => setContent({ type: 'items', ingredients })}
-            placeholder={'e.g. 120g chicken, 100g broccoli, 7.5ml olive oil\n(commas or one per line)'}
+            placeholder={'e.g. 120g chicken, 100g broccoli, 7.5ml olive oil'}
             commas
           />
         </>
@@ -199,7 +199,7 @@ export function MealEditor({
         <div className="set-row toggle-row">
           <span className="grow">
             <div style={{ fontWeight: 600 }}>Leftovers</div>
-            <div className="hint">Cooked earlier, so nothing to buy for it</div>
+            <div className="hint">Nothing to buy</div>
           </span>
           <Toggle checked={Boolean(m.leftovers)} onChange={(leftovers) => setM({ ...m, leftovers })} label="Leftovers" />
         </div>
@@ -283,7 +283,7 @@ export function RecipeChooser({ who, onPick, onClose }: { who: Who; onPick: (r: 
           ))}
         </div>
       ) : (
-        <div className="empty">{recipes.length ? 'No recipes match.' : 'No recipes yet. Add some in the Recipes tab, or use “Weighed items” instead.'}</div>
+        <div className="empty">{recipes.length ? 'No recipes match.' : 'No recipes yet.'}</div>
       )}
     </Sheet>
   );

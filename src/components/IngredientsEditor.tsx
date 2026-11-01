@@ -210,7 +210,6 @@ export function IngredientsEditor({
           })}
         </div>
       )}
-      {ingredients.length > 1 && <p className="small-print" style={{ margin: '8px 4px 0' }}>Drag <Icon name="grip" size={14} /> to reorder. Use ⋯ to add a heading like “For the sauce” above an ingredient.</p>}
 
       <div className="field" style={{ marginTop: 12 }}>
         <textarea className="input" rows={3} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder={placeholder} aria-label="Add ingredients" />

@@ -56,7 +56,7 @@ export function MenusView() {
         <div className="empty">
           <div className="empty-icon"><Icon name="list" size={26} /></div>
           <p style={{ margin: '0 0 4px', fontWeight: 650, color: 'var(--text)' }}>No menus{menus.length ? ' in this view' : ' yet'}</p>
-          <p style={{ margin: 0 }}>A menu is a run of days you can drop onto the calendar in one go. Import Nuria’s spreadsheet, build one here, or save a planned week from the Calendar.</p>
+          <p style={{ margin: 0 }}>A menu is a set of days you can put on the calendar in one go.</p>
         </div>
       )}
 
@@ -270,9 +270,6 @@ function ImportSheet({ onClose }: { onClose: () => void }) {
           </button>
           <input ref={fileRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
           {error && <p className="small-print" style={{ color: 'var(--danger)' }}>{error}</p>}
-          <p className="small-print">
-            The spreadsheet’s calorie numbers aren’t copied: they’re worked out again from the UK food data. Anything the app can’t match is marked for you to check.
-          </p>
         </>
       ) : (
         <>
@@ -311,7 +308,6 @@ function ImportSheet({ onClose }: { onClose: () => void }) {
               })}
             </div>
           )}
-          <p className="small-print">Untick any sheets you don’t want (e.g. old trials). You can rename them now or later.</p>
         </>
       )}
     </Sheet>

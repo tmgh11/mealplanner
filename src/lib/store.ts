@@ -20,6 +20,8 @@ export interface DeviceSettings {
   view?: Who;
   /** the shopping list's own switch; starts on Both */
   shopView?: Who;
+  /** the recipe list's own switch; starts on Both */
+  recipeView?: Who;
   /** the calendar: one day at a time, or the whole week */
   calMode?: 'day' | 'week';
   /** has swiped between days at least once (the hint can go) */
@@ -81,7 +83,7 @@ class Store {
   readonly ready: Promise<void>;
   // The Tom / Nuria / Both switches only last while the app is open: each time it starts, the
   // calendar and recipes go back to this phone's person and the shopping list back to Both.
-  private device: DeviceSettings = (({ view: _v, shopView: _s, ...rest }) => rest)(load<DeviceSettings>(K.device, { me: 'tom' }));
+  private device: DeviceSettings = (({ view: _v, shopView: _s, recipeView: _r, ...rest }) => rest)(load<DeviceSettings>(K.device, { me: 'tom' }));
   private syncInfo: Snapshot['sync'] = { state: 'local' };
   private listeners = new Set<Listener>();
   private snap: Snapshot | null = null;
@@ -274,7 +276,7 @@ class Store {
 
   setDevice(patch: Partial<DeviceSettings>) {
     this.device = { ...this.device, ...patch };
-    const { view: _v, shopView: _s, ...lasting } = this.device;
+    const { view: _v, shopView: _s, recipeView: _r, ...lasting } = this.device;
     save(K.device, lasting);
     this.notify();
   }

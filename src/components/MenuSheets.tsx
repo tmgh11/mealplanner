@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { HoldButton, Icon, Seg, Sheet, toast } from './ui';
+import { HoldButton, Seg, Sheet, toast } from './ui';
 import { WhoTag, useView } from './WhoSwitch';
 import { newId, store, useStore } from '../lib/store';
 import { addDays, fromISO, isISODate } from '../lib/dates';
@@ -28,7 +28,7 @@ export function AddMenuSheet({ defaultStart, onClose }: { defaultStart: string; 
           ))}
         </div>
       ) : (
-        <div className="empty">No menus yet. Make one in the Menus tab, import Nuria’s spreadsheet there, or plan a week and save it as a menu.</div>
+        <div className="empty">No menus yet.</div>
       )}
     </Sheet>
   );
@@ -178,7 +178,6 @@ export function SaveAsMenuSheet({ start: initialStart, onClose }: { start: strin
         <label htmlFor="sn">Menu name</label>
         <input id="sn" className="input" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
-      <p className="text-2" style={{ margin: '0 0 10px', fontSize: 14 }}>Which days of the calendar to copy into the menu:</p>
       <div className="inline">
         <div className="field">
           <label htmlFor="ss">Copy from</label>
@@ -201,11 +200,6 @@ export function SaveAsMenuSheet({ start: initialStart, onClose }: { start: strin
           ]}
         />
       </div>
-      <p className="small-print">
-        <Icon name="list" size={14} /> {menuDays.length
-          ? `Saved as a ${menuDays.length}-day menu (Day 1, Day 2…), not tied to these dates, so you can put it on the calendar from any day later.`
-          : 'Days are saved as Day 1, Day 2…, so the menu can start on any day later.'}
-      </p>
     </Sheet>
   );
 }

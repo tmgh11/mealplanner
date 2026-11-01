@@ -130,7 +130,7 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
             )}
           </div>
         ) : (
-          <p className="small-print">No ingredients yet. Add them with ⋯ → Edit recipe.</p>
+          <p className="small-print">No ingredients yet.</p>
         )}
 
         {tracking && r.ingredients.length > 0 && <NutritionSummary totals={totals} servings={r.servings} per100Cooked={kcalPer100Cooked(r, totals)} />}

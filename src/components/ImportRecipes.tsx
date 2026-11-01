@@ -70,10 +70,6 @@ export function PaprikaImportSheet({ onClose }: { onClose: () => void }) {
           </button>
           <input ref={fileRef} type="file" accept=".paprikarecipes,.paprikarecipe,application/zip,application/octet-stream" hidden onChange={(e) => { void load(e.target.files?.[0]); e.target.value = ''; }} />
           {error && <p className="small-print" style={{ color: 'var(--danger)' }}>{error}</p>}
-          <p className="small-print">
-            Photos, categories (as tags), ratings, notes and source links come across. Ingredients are matched to the UK food data;
-            Paprika’s own nutrition notes aren’t copied.
-          </p>
         </>
       ) : (
         <>

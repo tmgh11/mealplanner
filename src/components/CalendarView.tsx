@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { HoldButton, Icon, Seg, toast } from './ui';
 import { useView } from './WhoSwitch';
 import { MealChip } from './MealChip';
@@ -213,7 +213,7 @@ export function CalendarView() {
         </div>
         </>
       )}
-      {totalsFor.length > 0 && <p className="small-print">* some meals on that day have no numbers yet (notes, or ingredients without a food).</p>}
+      {totalsFor.length > 0 && <p className="small-print">* Some meals have no calorie numbers yet.</p>}
 
       {editing && (
         <MealEditor
@@ -315,35 +315,89 @@ function ClearMeals({ dates, view, label }: { dates: string[]; view: Who; label:
       <HoldButton className="danger-soft" onDone={clear} holdingLabel="Keep holding to clear…">
         <Icon name="trash" size={18} /> Hold to clear {what}
       </HoldButton>
-      <p className="small-print">
-        {view === 'both' ? `Removes all ${n} meal${n === 1 ? '' : 's'} shown.` : `Removes ${settings.names[view]}’s meals; ${settings.names[other!]}’s stay.`}
-        {handOver.length ? ` ${handOver.length} shared meal${handOver.length === 1 ? '' : 's'} stay${handOver.length === 1 ? 's' : ''} on ${settings.names[other!]}’s calendar.` : ''} You can undo straight afterwards.
-      </p>
+      {handOver.length > 0 && <p className="small-print">Shared meals stay on {settings.names[other!]}’s calendar.</p>}
     </div>
   );
 }
 
-/** The week line: this week in the middle, the weeks either side peeking in. Tap one to go there. */
+/**
+ * The week line: a strip of week tiles, the picked week in the middle and the weeks either side
+ * peeking in. When the week changes the strip slides across to it, like the row of dates in day
+ * view. Tap a neighbour to go there.
+ */
 function WeekStrip({ start, today, onMove }: { start: string; today: string; onMove: (days: number) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(358);
+  // the weeks drawn: a window around the picked one that only moves when you get near its edge
+  const [from, setFrom] = useState(() => addDays(start, -7 * 20));
+  const [jump, setJump] = useState(false); // re-centring the window: no slide
+  const count = 41;
+  let i = dayDiff(from, start) / 7;
+  if (i < 3 || i > count - 4) {
+    const next = addDays(start, -7 * 20);
+    if (next !== from) {
+      setFrom(next);
+      setJump(true);
+    }
+    i = 20;
+  }
+  useEffect(() => {
+    if (!jump) return;
+    const r = requestAnimationFrame(() => requestAnimationFrame(() => setJump(false)));
+    return () => cancelAnimationFrame(r);
+  }, [jump]);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setW(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const name = (ws: string) => {
     const n = dayDiff(weekStart(today), ws) / 7;
     return n === 0 ? 'This week' : n === 1 ? 'Next week' : n === -1 ? 'Last week' : '';
   };
-  const range = (ws: string) => rangeLabel(ws, addDays(ws, 6));
-  const prev = addDays(start, -7);
-  const next = addDays(start, 7);
+  const long = (ws: string) =>
+    ws.slice(5, 7) === addDays(ws, 6).slice(5, 7)
+      ? `${fromISO(ws).getDate()} – ${fromISO(addDays(ws, 6)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}`
+      : rangeLabel(ws, addDays(ws, 6));
+  const tile = Math.round(w * 0.7);
+  const gap = 8;
+  const x = (w - tile) / 2 - i * (tile + gap);
+
   return (
-    <div className="week-strip">
-      <button className="ws-side prev" onClick={() => onMove(-7)} aria-label={`Go to ${[name(prev), range(prev)].filter(Boolean).join(', ')}`}>
-        {name(prev) ? <><strong>{name(prev)}</strong><span>{range(prev)}</span></> : <strong>{range(prev)}</strong>}
-      </button>
-      <div className="ws-now">
-        {name(start) && <strong>{name(start)}</strong>}
-        <span className={name(start) ? undefined : 'ws-range-only'}>{start.slice(5, 7) === addDays(start, 6).slice(5, 7) ? `${fromISO(start).getDate()} – ${fromISO(addDays(start, 6)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}` : range(start)}</span>
+    <div className="week-strip" ref={ref}>
+      <div className={`ws-track${jump ? ' jump' : ''}`} style={{ transform: `translateX(${x}px)` }}>
+        {Array.from({ length: count }, (_, k) => {
+          const ws = addDays(from, 7 * k);
+          const on = ws === start;
+          const n = name(ws);
+          return (
+            <button
+              key={ws}
+              className={`ws-tile${on ? ' on' : k < i ? ' before' : ' after'}`}
+              style={{ width: tile }}
+              tabIndex={on || Math.abs(k - i) === 1 ? 0 : -1}
+              aria-current={on ? 'true' : undefined}
+              aria-label={on ? undefined : `Go to ${[n, long(ws)].filter(Boolean).join(', ')}`}
+              onClick={() => !on && onMove(dayDiff(start, ws))}
+            >
+              {n ? (
+                <>
+                  <strong>{n}</strong>
+                  <span>{long(ws)}</span>
+                </>
+              ) : (
+                <strong>{long(ws)}</strong>
+              )}
+            </button>
+          );
+        })}
       </div>
-      <button className="ws-side next" onClick={() => onMove(7)} aria-label={`Go to ${[name(next), range(next)].filter(Boolean).join(', ')}`}>
-        {name(next) ? <><strong>{name(next)}</strong><span>{range(next)}</span></> : <strong>{range(next)}</strong>}
-      </button>
     </div>
   );
 }

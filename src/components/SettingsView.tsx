@@ -98,7 +98,6 @@ export function SettingsView({ onFoods }: { onFoods: () => void }) {
           { value: 'nuria', label: settings.names.nuria, className: 'nuria' },
         ]}
       />
-      <p className="small-print">The app opens on this person’s view, and new recipes are theirs unless you choose otherwise.</p>
 
       <div className="section-title">Nutrition tracking</div>
       <div className="card set-group">
@@ -137,14 +136,13 @@ export function SettingsView({ onFoods }: { onFoods: () => void }) {
           );
         })}
       </div>
-      <p className="small-print">Optional, per person. Daily targets show against each day on the calendar.</p>
 
       <div className="section-title">Foods</div>
       <div className="card set-group">
         <button className="set-row" onClick={onFoods}>
           <span className="grow">
             <div style={{ fontWeight: 600 }}>Foods and their values</div>
-            <div className="hint">Search the UK food data, correct values, add your own foods</div>
+            <div className="hint">Search, correct and add foods</div>
           </span>
           <Icon name="right" size={18} />
         </button>
@@ -213,7 +211,6 @@ export function SettingsView({ onFoods }: { onFoods: () => void }) {
           </>
         )}
       </div>
-      <p className="small-print">Everything is saved on the phone first, so the app works offline.</p>
 
       <div className="section-title">Your data</div>
       <div className="card set-group">
@@ -228,7 +225,7 @@ export function SettingsView({ onFoods }: { onFoods: () => void }) {
         <button className="set-row" onClick={() => setPaprika(true)}>
           <span className="grow">
             <div style={{ fontWeight: 600 }}>Import recipes from Paprika</div>
-            <div className="hint">From a .paprikarecipes export. Recipes already imported are skipped.</div>
+            <div className="hint">From a .paprikarecipes file</div>
           </span>
           <Icon name="upload" size={20} />
         </button>

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Icon, Seg, Sheet } from './ui';
-import { WhoTag, useView } from './WhoSwitch';
+import { WhoTag } from './WhoSwitch';
 import { RecipeEditor } from './RecipeEditor';
 import { RecipeView } from './RecipeView';
 import { useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { perServing, recipeTotals, fmtKcal } from '../lib/nutrition';
-import { visibleIn, type Recipe } from '../lib/types';
+import { visibleIn, type Recipe, type Who } from '../lib/types';
 import { fmtMinutes, totalMinutes } from '../lib/times';
 
 /** Does the person on this phone want to see nutrition? */
@@ -17,7 +17,7 @@ export function useTracking() {
 
 export function RecipesView({ incoming, onIncomingUsed }: { incoming?: string; onIncomingUsed?: () => void } = {}) {
   const { recipes } = useStore();
-  const view = useView();
+  const view: Who = useStore().device.recipeView ?? 'both';
   const foods = useFoods();
   const tracking = useTracking();
   const [q, setQ] = useState('');
@@ -79,7 +79,6 @@ export function RecipesView({ incoming, onIncomingUsed }: { incoming?: string; o
           {recipes.length === 0 ? (
             <>
               <p style={{ margin: '0 0 4px', fontWeight: 650, color: 'var(--text)' }}>No recipes yet</p>
-              <p style={{ margin: 0 }}>Add one and paste in its ingredients. Weights are matched to UK food data automatically.</p>
             </>
           ) : (
             <p style={{ margin: 0 }}>
@@ -212,7 +211,7 @@ function FilterSheet({
           options={(['any', '30', '60', 'long'] as TimeFilter[]).map((v) => ({ value: v, label: v === 'any' ? 'Any' : v === '30' ? '≤ 30 min' : v === '60' ? '≤ 1 hr' : '> 1 hr' }))}
         />
         <p className="small-print" style={{ margin: '6px 2px 0' }}>
-          {timed} of {recipes.length} recipes have a time; the others are left out when you pick one.
+          Only {timed} of {recipes.length} recipes have a time.
         </p>
       </div>
       <div className="field">
@@ -229,9 +228,8 @@ function FilterSheet({
             })}
           </div>
         ) : (
-          <p className="small-print">No tags yet. Add them when editing a recipe.</p>
+          <p className="small-print">No tags yet.</p>
         )}
-        {tagsOn.length > 1 && <p className="small-print" style={{ margin: '8px 2px 0' }}>Showing recipes with all of these tags.</p>}
       </div>
     </Sheet>
   );

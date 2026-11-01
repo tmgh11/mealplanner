@@ -844,18 +844,22 @@ button.step:active { background: var(--surface-2); }
 .cal-mode .seg { padding: 3px; border-radius: 11px; }
 .cal-mode .seg button { min-height: 32px; padding: 0; font-size: 13.5px; border-radius: 8px; }
 .date-pill.today:not(.on) .dp-day { color: var(--tom); font-weight: 750; }
-.week-strip { display: flex; gap: 8px; align-items: stretch; height: 62px; margin: 0 -16px 12px; overflow: hidden; }
-.ws-side, .ws-now { display: flex; flex-direction: column; justify-content: center; border-radius: 16px; line-height: 1.25; }
-.ws-side {
-  flex: 0 0 84px; border: 0; background: var(--surface-2); color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; padding: 0 12px; white-space: nowrap; overflow: hidden;
+.week-strip { height: 62px; margin: 0 -16px 12px; overflow: hidden; }
+.ws-track { display: flex; gap: 8px; height: 100%; transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.3, 1); will-change: transform; }
+.ws-track.jump { transition: none; }
+@media (prefers-reduced-motion: reduce) { .ws-track { transition: none; } }
+.ws-tile {
+  flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  border: 0; border-radius: 16px; background: var(--surface-2); color: var(--muted); font: inherit; line-height: 1.25; cursor: pointer; padding: 0 10px; white-space: nowrap; overflow: hidden;
+  transition: background-color 0.3s, color 0.3s;
 }
-.ws-side.prev { margin-left: -38px; align-items: flex-end; text-align: right; }
-.ws-side.next { margin-right: -38px; align-items: flex-start; }
-.ws-side strong { font-weight: 700; color: var(--text-2); }
-.ws-now { flex: 1; min-width: 0; align-items: center; background: var(--ink); color: var(--on-ink); }
-.ws-now strong { font-size: 17px; font-weight: 750; }
-.ws-now span { font-size: 14px; opacity: 0.8; font-weight: 550; }
-.ws-now span.ws-range-only { font-size: 17px; font-weight: 750; opacity: 1; }
+.ws-tile strong { font-size: 17px; font-weight: 750; }
+.ws-tile span { font-size: 14px; font-weight: 550; opacity: 0.8; }
+.ws-tile.before { align-items: flex-end; text-align: right; }
+.ws-tile.after { align-items: flex-start; text-align: left; }
+.ws-tile:not(.on) strong, .ws-tile:not(.on) span { font-size: 12px; }
+.ws-tile:not(.on) strong { font-weight: 700; color: var(--text-2); }
+.ws-tile.on { background: var(--ink); color: var(--on-ink); cursor: default; }
 .cal-end { margin-top: 18px; display: flex; flex-direction: column; gap: 4px; }
 .cal-end .clear-all { margin-top: 10px; }
 .clear-all .hold-label { justify-content: center; }

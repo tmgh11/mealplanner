@@ -45,7 +45,7 @@ export function FoodsView() {
             <p style={{ margin: 0 }}>{foods.ready ? `No foods match “${q}”.` : 'Loading the food list…'}</p>
           ) : (
             <p style={{ margin: 0 }}>
-              Search the UK government’s food data above. Foods you add yourself, and any you correct (e.g. from a packet label), show up here.
+              Foods you add or correct show here.
             </p>
           )}
         </div>
@@ -162,10 +162,10 @@ export function FoodEditor({ food, startName, onClose, onSaved }: { food?: Food;
         </div>
       ) : (
         <p className="text-2" style={{ marginTop: 0, fontSize: 14 }}>
-          {food!.name}. Your values replace the UK data for both of you; the original is kept and you can reset it.
+          {food!.name}. Changes apply for both of you. You can reset it.
         </p>
       )}
-      <p className="small-print" style={{ marginTop: 0 }}>Per 100 g, as on the “per 100 g” column of a label. Leave blank if unknown.</p>
+      <p className="small-print" style={{ marginTop: 0 }}>Per 100 g. Leave blank if unknown.</p>
       <div className="card set-group">
         {NUTRIENT_KEYS.map((k) => (
           <label key={k} className="set-row" style={{ padding: '6px 8px 6px 16px' }}>
