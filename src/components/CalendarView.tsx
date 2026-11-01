@@ -10,7 +10,7 @@ import { newId, store, useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { addDays, fromISO, today } from '../lib/dates';
 import { dayLabel, dayTotal, daysFrom, mealTitle, peopleOf, rangeLabel, weekStart } from '../lib/plan';
-import { fmtKcal } from '../lib/nutrition';
+import { fmtG, fmtKcal } from '../lib/nutrition';
 import { SLOT_LABELS, SLOTS, visibleIn, type Meal, type MealBody, type Person, type Recipe, type Slot, type Who } from '../lib/types';
 
 
@@ -109,6 +109,51 @@ export function CalendarView() {
       </span>
     );
 
+  // day view: calories, protein, carbs and fat against each person's targets
+  const macros = (date: string) => {
+    const rows = totalsFor
+      .map((p) => ({ p, tot: dayTotal(mealsByDate.get(date) ?? [], p, lookup), target: settings.tracking[p] }))
+      .filter((r) => r.tot.meals > 0);
+    if (!rows.length) return null;
+    return (
+      <div className="day-macros">
+        {rows.map(({ p, tot, target }) => (
+          <div key={p} className={`dm-person ${p}`}>
+            {totalsFor.length > 1 && <span className="dm-name">{settings.names[p]}</span>}
+            <div className="dm-grid">
+              {(
+                [
+                  ['kcal', 'Calories', ''],
+                  ['protein', 'Protein', 'g'],
+                  ['carbs', 'Carbs', 'g'],
+                  ['fat', 'Fat', 'g'],
+                ] as const
+              ).map(([k, label, unit]) => {
+                const v = tot.sum[k] ?? 0;
+                const goal = target[k];
+                return (
+                  <div key={k} className="dm-cell">
+                    <span className="dm-label">{label}</span>
+                    <span className="dm-value">
+                      <strong>{k === 'kcal' ? fmtKcal(v) : fmtG(v)}</strong>
+                      {goal ? <span className="dm-goal"> / {goal}{unit}</span> : unit}
+                      {k === 'kcal' && tot.uncounted ? '*' : ''}
+                    </span>
+                    {goal ? (
+                      <span className="dm-bar" aria-hidden="true">
+                        <span style={{ width: `${Math.min(100, (v / goal) * 100)}%` }} />
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="cal-row">
@@ -139,7 +184,7 @@ export function CalendarView() {
                       meals={mealsOn(date)}
                       view={view}
                       lookup={lookup}
-                      totals={totals(date)}
+                      totals={macros(date)}
                       onOpen={(m) => setEditing({ meal: m, body: m, date })}
                       onAdd={(slot) => add(date, slot)}
                       onAddMenu={() => setSheet('add-menu')}
@@ -256,7 +301,7 @@ function DayCard({
   const slots = SLOTS.filter((s) => meals.some((m) => m.slot === s));
   return (
     <section className="card day">
-      {totals && <header className="day-head">{totals}</header>}
+      {totals}
       {slots.length === 0 && <p className="day-empty">Nothing planned yet.</p>}
       {slots.map((slot) => (
         <div key={slot} className="slot">

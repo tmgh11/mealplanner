@@ -52,6 +52,19 @@ const DEFAULT_PORTIONS: [RegExp, Portion[]][] = [
   [/^yogurt/i, [{ unit: 'pot', grams: 125 }, { unit: 'each', grams: 125 }]],
   [/^cheese, spreadable/i, [{ unit: 'triangle', grams: 17.5 }]],
   [/^rusks/i, [{ unit: 'each', grams: 17 }]],
+  // a mug of tea or coffee: about 250 ml, so "coffee" on its own counts as one
+  [/^(coffee|tea), (?!powder|instant, powder|chinese, leaves$|irish)/i, [{ unit: 'each', grams: 250 }, { unit: 'mug', grams: 250 }]],
+  [/^coffee, cappuccino/i, [{ unit: 'each', grams: 250 }, { unit: 'mug', grams: 250 }]],
+  [/^oat drink/i, [{ unit: 'splash', grams: 30 }]],
+  [/^milk, /i, [{ unit: 'splash', grams: 30 }]],
+];
+
+/**
+ * A few everyday foods CoFID doesn't list, with typical values from UK supermarket labels (per 100 g).
+ */
+const EXTRA_FOODS: { id: string; name: string; group: string; per100: Nutrients }[] = [
+  // a typical chilled oat drink (e.g. Oatly Original): 46 kcal per 100 ml
+  { id: 'extra:oat-drink', name: 'Oat drink (oat milk), typical', group: 'Milk and milk products', per100: { kcal: 46, protein: 1, carbs: 6.7, fat: 1.5, fibre: 0.8, sugars: 4.1, salt: 0.1 } },
 ];
 
 export function defaultPortions(name: string): Portion[] {
@@ -70,6 +83,12 @@ export function buildFoods(rows: CofidRow[], entries: FoodEntry[]): Food[] {
     edits.delete(id);
     return applyEdit(base, e);
   });
+  for (const x of EXTRA_FOODS) {
+    const base: Food = { ...x, per100: { ...x.per100 }, portions: defaultPortions(x.name), source: 'extra' };
+    const e = edits.get(x.id);
+    edits.delete(x.id);
+    foods.push(e ? applyEdit(base, e) : base);
+  }
   for (const e of edits.values()) {
     if (e.id.startsWith('cofid:')) continue; // an edit for a food CoFID no longer lists
     foods.push({
@@ -262,7 +281,7 @@ export function searchFoods(foods: Food[], name: string, opts: { state?: 'raw' |
     // a dish whose name starts with other foods ("Rice and red kidney beans") is not the food itself
     score -= it.head.filter((x) => x !== 'and' && x !== 'with' && !q.some((w) => close(x, w)) && !soft.includes(x)).length * 4;
     for (const w of soft) if (it.words.includes(w)) score += 4;
-    if (it.food.source !== 'cofid') score += 3; // our own and edited foods first when equally good
+    if (it.food.source === 'custom' || it.food.source === 'edited') score += 3; // our own and edited foods first when equally good
     if (norm(it.food.name) === phrase) score += 8;
     if (it.words.includes('average')) score += 2; // CoFID's generic version
     if (wantCooked) {

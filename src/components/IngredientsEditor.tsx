@@ -182,7 +182,7 @@ export function IngredientsEditor({
                   <div className="ing-bottom">
                     <button className={`ing-food${f.noMatch ? ' warn' : ''}`} onClick={() => setPicking(ing)}>
                       {ing.foodId === null ? 'Not counted' : food ? food.name : 'No match — choose a food'}
-                      {food && food.source !== 'cofid' && <span className="badge-mini">{food.source === 'custom' ? 'ours' : 'edited'}</span>}
+                      {food && (food.source === 'custom' || food.source === 'edited') && <span className="badge-mini">{food.source === 'custom' ? 'ours' : 'edited'}</span>}
                     </button>
                     {ing.foodId !== null && (
                       <label className="grams">

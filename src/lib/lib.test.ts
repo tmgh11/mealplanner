@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { formatQty, parseLine, splitItems, splitRecipeIngredients } from './parse';
 import { buildFoods, cofidId, findFoods, searchFoods, type CofidRow } from './foods';
 import { kcalPer100Cooked, perCookedGrams, perServing, recipeTotals, toGrams } from './nutrition';
-import { fixHeadings, resolveLine } from './ingredients';
+import { fillDrinks, fixHeadings, resolveLine } from './ingredients';
 import { visibleIn, type FoodEntry } from './types';
 import cofid from '../../public/data/cofid.json';
 
@@ -186,7 +186,47 @@ describe('alternatives and unit-less items', () => {
   });
   it('leaves foods CoFID lacks unmatched', () => {
     expect(resolveLine('slice gf toast', foods).ingredient.foodId).toBeUndefined();
-    expect(resolveLine('30ml oatmilk', foods).ingredient.foodId).toBeUndefined();
+  });
+});
+
+describe('drinks', () => {
+  const name = (id?: string | null) => foods.find((f) => f.id === id)?.name;
+  const food = (t: string) => {
+    const id = resolveLine(t, foods).ingredient.foodId;
+    return foods.find((f) => f.id === id)?.name;
+  };
+  const grams = (t: string) => resolveLine(t, foods).ingredient.grams;
+  it('counts tea and coffee as a mug when no amount is given', () => {
+    expect(food('coffee')).toBe('Coffee, infusion, average');
+    expect(grams('coffee')).toBe(250);
+    expect(grams('mug of tea')).toBe(250);
+    expect(grams('2 coffees')).toBe(500);
+    expect(food('cappuccino')).toBe('Coffee, cappuccino, latte');
+  });
+  it('reads "with milk" as tea or coffee made with milk', () => {
+    expect(food('coffee with oatmilk')).toBe('Coffee, infusion, average, with semi-skimmed milk');
+    expect(food('tea with milk')).toBe('Tea, infusion, average, with semi-skimmed milk');
+    expect(food('coffee with whole milk')).toBe('Coffee, infusion, average, with whole milk');
+    expect(grams('coffee with oatmilk')).toBe(250);
+  });
+  it('knows oat milk, which CoFID lacks', () => {
+    expect(food('30ml oatmilk')).toBe('Oat drink (oat milk), typical');
+    expect(grams('30ml oatmilk')).toBe(30);
+    expect(food('oat milk')).toBe('Oat drink (oat milk), typical');
+    expect(grams('a splash of oat milk')).toBe(30);
+  });
+  it('fills in drinks saved before, leaving everything else alone', () => {
+    const coffee = { id: 'a', text: 'coffee with oatmilk', foodId: foods.find((f) => f.name === 'Coffee, infusion, average')!.id };
+    const oat = { id: 'b', text: '30ml oatmilk', grams: 30 };
+    const toast = { id: 'c', text: 'slice gf toast' };
+    const byHand = { id: 'd', text: 'coffee', gramsSetByHand: true };
+    const out = fillDrinks([coffee, oat, toast, byHand], foods)!;
+    expect(out[0]).toMatchObject({ id: 'a', grams: 250 });
+    expect(name(out[0].foodId)).toBe('Coffee, infusion, average, with semi-skimmed milk');
+    expect(name(out[1].foodId)).toBe('Oat drink (oat milk), typical');
+    expect(out[2]).toBe(toast);
+    expect(out[3]).toBe(byHand);
+    expect(fillDrinks(out, foods)).toBeNull();
   });
 });
 

@@ -534,6 +534,20 @@ textarea.input { resize: vertical; line-height: 1.4; }
 .day-head strong { font-size: 16px; }
 .today-badge { font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.05em; background: var(--ink); color: var(--on-ink); padding: 2px 7px; border-radius: 6px; }
 .day-totals { margin-left: auto; display: flex; gap: 8px; }
+.day-macros { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 10px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.dm-name { display: block; font-size: 12px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
+.dm-person.tom .dm-name { color: var(--tom); }
+.dm-person.nuria .dm-name { color: var(--nuria); }
+.dm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.dm-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dm-label { font-size: 11.5px; font-weight: 650; color: var(--muted); }
+.dm-value { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dm-value strong { font-size: 15px; font-weight: 750; }
+.dm-goal { color: var(--muted); font-weight: 550; }
+.dm-bar { display: block; height: 4px; border-radius: 2px; background: var(--surface-3); overflow: hidden; margin-top: 3px; }
+.dm-bar > span { display: block; height: 100%; border-radius: 2px; background: var(--text-2); }
+.dm-person.tom .dm-bar > span { background: var(--tom); }
+.dm-person.nuria .dm-bar > span { background: var(--nuria); }
 .day-total { font-size: 12.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--shared-soft); font-variant-numeric: tabular-nums; }
 .day-total.tom { background: var(--tom-soft); color: var(--tom); }
 .day-total.nuria { background: var(--nuria-soft); color: var(--nuria); }

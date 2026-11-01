@@ -17,7 +17,7 @@ export function FoodsView() {
   const [open, setOpen] = useState<Food | null>(null);
   const [adding, setAdding] = useState(false);
 
-  const results = useMemo(() => (q.trim() ? findFoods(foods.foods, q, 80) : foods.foods.filter((f) => f.source !== 'cofid')), [foods, q]);
+  const results = useMemo(() => (q.trim() ? findFoods(foods.foods, q, 80) : foods.foods.filter((f) => f.source === 'custom' || f.source === 'edited')), [foods, q]);
 
   return (
     <>
@@ -76,6 +76,7 @@ function FoodDetail({ food, onClose }: { food: Food; onClose: () => void }) {
     <Sheet title={food.name} onClose={onClose}>
       <p className="text-2" style={{ marginTop: 0, fontSize: 14 }}>
         {food.source === 'cofid' && <>From the UK government’s food data (CoFID 2021). Per 100 g.</>}
+        {food.source === 'extra' && <>Not in the UK data: typical values from UK supermarket labels. Per 100 g.</>}
         {food.source === 'edited' && <>Edited{food.editedBy ? ` by ${settings.names[food.editedBy]}` : ''}; UK data values shown in grey. Per 100 g.</>}
         {food.source === 'custom' && <>One of our own foods{food.editedBy ? `, added by ${settings.names[food.editedBy]}` : ''}. Per 100 g.</>}
       </p>

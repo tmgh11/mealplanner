@@ -33,7 +33,7 @@ export interface Food {
   per100: Nutrients;
   portions: Portion[];
   /** set when the values come from CoFID untouched */
-  source: 'cofid' | 'edited' | 'custom';
+  source: 'cofid' | 'extra' | 'edited' | 'custom';
   editedBy?: Person;
   /** the CoFID values, kept when someone has overridden them */
   original?: Nutrients;

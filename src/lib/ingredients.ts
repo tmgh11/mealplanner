@@ -19,6 +19,23 @@ export interface Resolved {
   alternatives: Food[];
 }
 
+/**
+ * What to look a drink up as. "oatmilk" is oat milk; tea or coffee "with oat milk" (or any milk)
+ * is CoFID's tea or coffee made with milk: a splash of oat drink has about the same calories as
+ * one of semi-skimmed.
+ */
+export function drinkName(name: string): string {
+  const n = name
+    .replace(/\b(oat|soya|soy|almond|coconut|rice)milk\b/gi, '$1 milk')
+    .replace(/^(?:an?\s+)?(?:mug|cup|splash|dash|drop)\s+of\s+/i, '');
+  if (/^(cappuccino|latte|flat white|cafe latte|caffe latte)s?$/i.test(n.trim())) return 'coffee cappuccino latte';
+  const m = n.match(/^(black |white )?(coffee|tea)\s+with\s+(?:a\s+(?:splash|dash|drop)\s+of\s+)?(oat|soya|soy|almond|semi[- ]skimmed|skimmed|whole|full[- ]fat)?\s*(?:milk|drink)$/i);
+  if (m) return `${m[2]} infusion average with ${/whole|full/i.test(m[3] ?? '') ? 'whole' : 'semi-skimmed'} milk`;
+  if (/^(black )?(coffee|tea)$/i.test(n.trim())) return `${n.trim().replace(/^black /i, '')} infusion average`;
+  if (/^(oat|oats) (milk|drink)$/i.test(n.trim())) return 'oat drink';
+  return n;
+}
+
 export function resolveLine(text: string, foods: Food[]): Resolved {
   const parsed = parseLine(text);
   if (isHeading(text)) {
@@ -35,7 +52,13 @@ export function resolveLine(text: string, foods: Food[]): Resolved {
   // a tin of something is the cooked, canned kind
   const tinned = parsed.unit === 'tin' && !/\b(canned|tinned)\b/i.test(parsed.name);
   const state = tinned && !parsed.state ? 'cooked' : parsed.state;
-  let matches = parsed.name ? searchFoods(foods, tinned ? `${parsed.name} canned` : parsed.name, { state, limit: 6 }) : [];
+  const name = drinkName(parsed.name);
+  // "a splash of milk": one splash, whatever a splash of that weighs
+  if (parsed.qty == null && parsed.grams == null && /^(?:an?\s+)?(?:splash|dash) of /i.test(parsed.name)) {
+    parsed.qty = 1;
+    parsed.unit = 'splash';
+  }
+  let matches = name ? searchFoods(foods, tinned ? `${name} canned` : name, { state, limit: 6 }) : [];
   if (!matches.length && tinned) matches = searchFoods(foods, parsed.name, { state, limit: 6 });
   // "Carrots/Onions", "Tofu or Paneer", "Orange/ 1 Kiwi": go with the first choice
   if (!matches.length && /\/|\bor\b/i.test(parsed.name)) {
@@ -104,4 +127,23 @@ export function fixHeadings<T extends { ingredients: Ingredient[] }>(r: T): T | 
     return { id: i.id, text: headingText(i.text), foodId: null, heading: true };
   });
   return changed ? { ...r, ingredients } : null;
+}
+
+const DRINK = /\b(coffee|tea|cappuccino|latte|flat white|oat ?milk|oat drink|milk)\b/i;
+
+/**
+ * Drinks saved before the app knew about mugs and oat milk ("coffee with oatmilk", "30ml oatmilk")
+ * were left without a food or an amount. Fill those in. Anything already matched, or weighed by
+ * hand, is left alone. Null if there's nothing to change.
+ */
+export function fillDrinks(ingredients: Ingredient[], foods: Food[]): Ingredient[] | null {
+  let changed = false;
+  const out = ingredients.map((i) => {
+    if (i.heading || i.gramsSetByHand || (i.foodId && i.grams != null) || !DRINK.test(i.text)) return i;
+    const r = resolveLine(i.text, foods).ingredient;
+    if (!r.foodId || r.grams == null) return i;
+    changed = true;
+    return { ...i, foodId: r.foodId, grams: r.grams, qty: r.qty, unit: r.unit };
+  });
+  return changed ? out : null;
 }

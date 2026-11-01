@@ -9,16 +9,19 @@ import { SettingsView } from './components/SettingsView';
 import { Icon, ToastHost } from './components/ui';
 import { PersonFilter } from './components/WhoSwitch';
 import { store, useStore } from './lib/store';
+import type { MealContent } from './lib/types';
 import { timesFromNotes } from './lib/times';
 import { moveExtrasToNotes } from './lib/method';
-import { fixHeadings } from './lib/ingredients';
+import { fillDrinks, fixHeadings } from './lib/ingredients';
+import { useFoods } from './lib/useFoods';
 
 type Tab = 'calendar' | 'shopping' | 'recipes' | 'menus' | 'foods' | 'settings';
 
 const TITLES: Record<Tab, string> = { calendar: 'Calendar', shopping: 'Shopping list', recipes: 'Recipes', menus: 'Menus', foods: 'Foods', settings: 'Settings' };
 
 export default function App() {
-  const { sync, device, settings, loaded, recipes } = useStore();
+  const { sync, device, settings, loaded, recipes, mealsByDate, menus } = useStore();
+  const foods = useFoods();
   // once per start: recipes imported before times had their own place have them in the notes
   const tidied = useRef(false);
   useEffect(() => {
@@ -35,6 +38,26 @@ export default function App() {
       .filter((r): r is NonNullable<typeof r> => Boolean(r));
     if (moved.length) store.put(...moved);
   }, [loaded, recipes]);
+  // once per start, when the food list is ready: drinks saved without a food or an amount
+  const drinksDone = useRef(false);
+  useEffect(() => {
+    if (!loaded || !foods.ready || drinksDone.current) return;
+    drinksDone.current = true;
+    const fix = <T extends { content: MealContent }>(m: T): T | null => {
+      if (m.content.type !== 'items') return null;
+      const ingredients = fillDrinks(m.content.ingredients, foods.foods);
+      return ingredients ? { ...m, content: { ...m.content, ingredients } } : null;
+    };
+    const meals = [...mealsByDate.values()].flat().map(fix).filter((m): m is NonNullable<typeof m> => Boolean(m));
+    const fixedMenus = menus
+      .map((menu) => {
+        let changed = false;
+        const days = menu.days.map((d) => ({ meals: d.meals.map((m) => { const f = fix(m); if (f) changed = true; return f ?? m; }) }));
+        return changed ? { ...menu, days } : null;
+      })
+      .filter((m): m is NonNullable<typeof m> => Boolean(m));
+    if (meals.length || fixedMenus.length) store.put(...meals, ...fixedMenus);
+  }, [loaded, foods, mealsByDate, menus]);
   // a recipe link shared into the app (Android's Share menu opens ./?url=… or ./?text=…)
   const [incoming, setIncoming] = useState<string | undefined>(() => {
     const q = new URLSearchParams(window.location.search);
