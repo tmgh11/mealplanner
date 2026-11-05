@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon, Seg, Sheet, toast } from './ui';
 import { IngredientsEditor } from './IngredientsEditor';
 import { NutritionSummary } from './Nutrition';
@@ -8,6 +8,7 @@ import { newId, store, useStore } from '../lib/store';
 import { useFoods } from '../lib/useFoods';
 import { fmtKcal, kcalPer100Cooked, perServing, recipeTotals } from '../lib/nutrition';
 import type { Recipe, Who } from '../lib/types';
+import { shrinkPhoto } from '../lib/photo';
 import { fetchWebRecipe, FetchProblem } from '../lib/fetchRecipe';
 import { findUrl, webToRecipe } from '../lib/recipeWeb';
 import { fmtMinutes, parseMinutes } from '../lib/times';
@@ -46,6 +47,15 @@ export function RecipeEditor({
   const dirty = JSON.stringify(r) !== JSON.stringify(orig) || tags !== (initial?.tags ?? []).join(', ');
 
   const set = (patch: Partial<Recipe>) => setR((x) => ({ ...x, ...patch }));
+  const photoRef = useRef<HTMLInputElement>(null);
+  const addPhoto = async (file?: File) => {
+    if (!file) return;
+    try {
+      set({ photo: await shrinkPhoto(file) });
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Couldn’t add that photo');
+    }
+  };
 
   // ---- a new recipe can be read from a website: paste its link and the form fills itself in
   const [url, setUrl] = useState(link ?? '');
@@ -182,13 +192,21 @@ export function RecipeEditor({
           </span>
         </div>
       )}
-      {r.photo && (
+      <input ref={photoRef} type="file" accept="image/*" hidden onChange={(e) => { void addPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+      {r.photo ? (
         <div className="hero-wrap">
-          <img className="hero" src={r.photo} alt="" onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = 'none')} />
+          <img className="hero" src={r.photo} alt="" />
+          <button className="hero-change" onClick={() => photoRef.current?.click()}>
+            <Icon name="camera" size={15} /> Change photo
+          </button>
           <button className="icon-btn small hero-remove" onClick={() => set({ photo: undefined })} aria-label="Remove photo">
             <Icon name="close" size={14} />
           </button>
         </div>
+      ) : (
+        <button className="add-photo" onClick={() => photoRef.current?.click()}>
+          <Icon name="camera" size={20} /> Add a photo
+        </button>
       )}
       <div className="field">
         <label htmlFor="rt">Name</label>

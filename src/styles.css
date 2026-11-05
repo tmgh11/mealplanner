@@ -479,7 +479,8 @@ select.input {
 .ing { padding: 12px 14px; border-bottom: 1px solid var(--border); }
 .ing:last-child { border-bottom: 0; }
 .ing-top { display: flex; align-items: flex-start; gap: 8px; }
-.ing-text { flex: 1; min-width: 0; font-weight: 600; padding-top: 2px; }
+.ing-text { flex: 1; min-width: 0; font-weight: 600; padding-top: 2px; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: text; }
+.ing-text-input { flex: 1; min-width: 0; font: inherit; font-weight: 600; color: inherit; background: var(--surface-2); border: 1.5px solid var(--accent, var(--ink)); border-radius: 8px; padding: 4px 8px; margin: -3px 0 -3px -8px; resize: none; line-height: 1.35; }
 .icon-btn.small { width: 32px; height: 32px; margin: -4px -6px 0 0; }
 .ing-bottom { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .ing-food {
@@ -644,6 +645,8 @@ textarea.input { resize: vertical; line-height: 1.4; }
 .import-link { margin: 12px auto 0; display: flex; background: none; color: var(--text-2); }
 .hero-wrap { position: relative; margin-bottom: 14px; }
 .hero { width: 100%; max-height: 220px; object-fit: cover; border-radius: var(--radius-sm); display: block; background: var(--surface-2); }
+.hero-change { position: absolute; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; padding: 7px 12px; background: rgba(0, 0, 0, 0.55); color: #fff; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+.add-photo { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px; padding: 22px 0; border: 1.5px dashed var(--border-strong, var(--border)); border-radius: var(--radius-sm); background: none; color: var(--text-2); font: inherit; font-weight: 650; cursor: pointer; }
 .hero-remove { position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.5); color: #fff; }
 .ing-heading { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 14px; padding-bottom: 6px; }
 .back-title { display: flex; align-items: center; gap: 10px; }

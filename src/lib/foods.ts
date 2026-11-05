@@ -45,6 +45,8 @@ const DEFAULT_PORTIONS: [RegExp, Portion[]][] = [
   [/^salmon, .*raw/i, [{ unit: 'fillet', grams: 120 }]],
   [/^(cod|haddock|pollock|hake|plaice|sea bass|bass, sea), .*raw/i, [{ unit: 'fillet', grams: 140 }]],
   [/^tuna, canned in (brine|water|spring water|sunflower oil)/i, [{ unit: 'tin', grams: 112 }]],
+  // a 400 g tin of beans is about 240 g drained
+  [/^beans, (butter|cannellini|chick peas|haricot|red kidney), canned|^beans, pinto, dried, boiled/i, [{ unit: 'tin', grams: 240 }, { unit: 'can', grams: 240 }]],
   [/^bacon rashers/i, [{ unit: 'rasher', grams: 25 }]],
   [/^stock cubes/i, [{ unit: 'cube', grams: 10 }]],
   [/^chicken, light meat, raw/i, [{ unit: 'each', grams: 150 }, { unit: 'slice', grams: 20 }]],
@@ -160,7 +162,7 @@ const SYNONYMS: Record<string, string> = {
   aparagus: 'asparagus', 'aparagus tips': 'asparagus', 'asparagus tips': 'asparagus', 'green beans': 'beans green', 'runner beans': 'beans runner',
   'broad beans': 'beans broad', 
   'white fish': 'cod flesh only', 'frozen fish': 'cod flesh only', seafood: 'prawns', 'pork tenderloin': 'pork fillet', 'pork loin': 'pork loin',
-  lomo: 'pork loin', 'trozos de carne': 'beef lean average raw', solomillo: 'pork fillet', 'cured ham': 'ham', 'yogurt': 'yogurt plain', 'greek yogurt': 'yogurt greek style plain', 'gf toast': 'bread gluten free', 'gf bread': 'bread gluten free',
+  lomo: 'pork loin', borlotti: 'pinto dried boiled', 'trozos de carne': 'beef lean average raw', solomillo: 'pork fillet', 'cured ham': 'ham', 'yogurt': 'yogurt plain', 'greek yogurt': 'yogurt greek style plain', 'gf toast': 'bread gluten free', 'gf bread': 'bread gluten free',
   'wholemeal toast': 'bread wholemeal', toast: 'bread white', 'mango chunks': 'mango', blueberry: 'blueberries', 'brussels sprouts': 'brussels sprouts',
   rusks: 'rusks', chard: 'chard swiss', leeks: 'leeks', leek: 'leeks', spinach: 'spinach', kale: 'curly kale', beetroot: 'beetroot',
   'pickled beetroot': 'beetroot pickled', 'pickled onion': 'onions pickled', pickles: 'gherkins', radish: 'radish red', radishes: 'radish red', lettuce: 'lettuce',

@@ -5,7 +5,7 @@ import { isISODate } from '../lib/dates';
 type IconName =
   | 'plus' | 'camera' | 'arrows' | 'repeat' | 'chart' | 'list' | 'settings' | 'close' | 'trash' | 'check'
   | 'left' | 'right' | 'search' | 'swap' | 'upload' | 'download' | 'pause' | 'play' | 'cloud'
-  | 'book' | 'leaf' | 'edit' | 'link' | 'alert' | 'scale' | 'calendar' | 'cart' | 'globe' | 'more' | 'grip' | 'up' | 'down' | 'heading' | 'clock' | 'filter' | 'chevron';
+  | 'book' | 'leaf' | 'edit' | 'link' | 'alert' | 'scale' | 'calendar' | 'cart' | 'globe' | 'more' | 'grip' | 'up' | 'down' | 'heading' | 'clock' | 'filter' | 'chevron' | 'copy';
 
 const PATHS: Record<IconName, ReactNode> = {
   plus: <path d="M12 5v14M5 12h14" />,
@@ -53,6 +53,7 @@ const PATHS: Record<IconName, ReactNode> = {
   book: <path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5zM5 19.5A1.5 1.5 0 0 0 6.5 21H19M9 7h6" />,
   leaf: <path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14M5 19l7-7" />,
   edit: <path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" />,
+  copy: <path d="M9 9h10v12H9zM5 15H4V3h11v1" />,
   link: <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
   alert: <path d="M12 4l9 16H3zM12 10v4M12 17h.01" />,
   calendar: (

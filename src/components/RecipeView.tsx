@@ -12,6 +12,7 @@ import { kcalPer100Cooked, recipeTotals } from '../lib/nutrition';
 import { SLOT_LABELS, type Meal, type ShopItem } from '../lib/types';
 import { MealEditor } from './MealEditor';
 import { today } from '../lib/dates';
+import { recipeAsText } from '../lib/share';
 import { dayLabel } from '../lib/plan';
 import { methodSteps } from '../lib/method';
 import { fmtMinutes, totalMinutes } from '../lib/times';
@@ -79,6 +80,7 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
             label="Recipe actions"
             items={[
               { label: 'Edit recipe', icon: 'edit', run: () => setEditing(true) },
+              { label: 'Copy for WhatsApp', icon: 'copy', run: () => void copyText(recipeAsText(r)) },
               { label: 'Delete recipe', icon: 'trash', danger: true, run: remove },
             ]}
           />
@@ -194,4 +196,23 @@ export function RecipeView({ id, onClose }: { id: string; onClose: () => void })
       {shopItems && <ChooseItemsSheet title="Add to shopping list" items={shopItems} note={`Everything for ${r.title || 'this recipe'} (serves ${r.servings}).`} onClose={() => setShopItems(null)} />}
     </>
   );
+}
+
+/** Put text on the clipboard, falling back to the old way where the clipboard isn't allowed. */
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const t = document.createElement('textarea');
+    t.value = text;
+    t.setAttribute('readonly', '');
+    t.style.position = 'fixed';
+    t.style.opacity = '0';
+    document.body.appendChild(t);
+    t.select();
+    const ok = document.execCommand('copy');
+    t.remove();
+    if (!ok) return toast('Couldn’t copy the recipe');
+  }
+  toast('Recipe copied: paste it into WhatsApp');
 }

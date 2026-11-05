@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { formatQty, parseLine, splitItems, splitRecipeIngredients } from './parse';
 import { buildFoods, cofidId, findFoods, searchFoods, type CofidRow } from './foods';
 import { kcalPer100Cooked, perCookedGrams, perServing, recipeTotals, toGrams } from './nutrition';
-import { fillUnmatched, fixHeadings, resolveLine } from './ingredients';
+import { fillUnmatched, fixHeadings, flags, resolveLine, reword } from './ingredients';
 import { visibleIn, type FoodEntry } from './types';
 import cofid from '../../public/data/cofid.json';
 
@@ -77,7 +77,7 @@ describe('matching foods (CoFID)', () => {
     expect(best('salmon')).toBe('Salmon, farmed, flesh only, raw');
     expect(best('green beans')).toBe('Beans, green, raw');
     expect(best('potatoes')).toBe('Potatoes, old, raw, flesh only');
-    expect(best('trozos de carne')).toBeUndefined();
+    expect(best('trozos de carne')).toBe('Beef, lean, average, raw');
     expect(best('olive oil')).toBe('Oil, olive');
     expect(best('onion')).toBe('Onions, raw');
     expect(best('garlic')).toBe('Garlic, raw');
@@ -201,6 +201,45 @@ describe('brands and Spanish words', () => {
   });
   it('reads trozos de carne as lean beef', () => {
     expect(pick('100g trozos de carne')).toEqual(['Beef, lean, average, raw', 100]);
+  });
+});
+
+describe('rewording an ingredient', () => {
+  const name = (id?: string | null) => foods.find((f) => f.id === id)?.name;
+  it('works the amount out again and keeps the food', () => {
+    const garlic = resolveLine('4 garlic cloves', foods).ingredient;
+    const more = reword(garlic, '5 garlic cloves', foods);
+    expect(more).toMatchObject({ id: garlic.id, foodId: garlic.foodId, grams: 20, text: '5 garlic cloves' });
+    const beans = resolveLine('400g borlotti beans, drained and rinsed', foods).ingredient;
+    expect(name(beans.foodId)).toBe('Beans, pinto, dried, boiled in unsalted water');
+    expect(reword(beans, '2 tins borlotti beans, drained and rinsed', foods).grams).toBe(480);
+  });
+  it('matches again when the wording names another food', () => {
+    const garlic = resolveLine('4 garlic cloves', foods).ingredient;
+    expect(name(reword(garlic, '2 tbsp ginger', foods).foodId)).toBe('Ginger, fresh');
+  });
+});
+
+describe('drained tins', () => {
+  const grams = (t: string) => resolveLine(t, foods).ingredient.grams;
+  it('reads a tin weight on drained beans as the drained weight', () => {
+    expect(grams('400g borlotti beans, drained and rinsed')).toBe(240);
+    expect(grams('1 tin (400g) chickpeas, drained')).toBe(240);
+    expect(grams('2 x 400g tins chickpeas, drained')).toBe(480);
+    expect(grams('410g kidney beans, drained')).toBe(240);
+  });
+  it('takes other weights as they are', () => {
+    expect(grams('400g chickpeas')).toBe(400);
+    expect(grams('250g cooked chickpeas')).toBe(250);
+    expect(grams('300g chickpeas, drained')).toBe(300);
+    expect(grams('400g tin chopped tomatoes, drained')).toBe(400);
+  });
+  it('fixes ones saved at the full tin weight, and says so', () => {
+    const old = { ...resolveLine('400g chickpeas, drained', foods).ingredient, grams: 400 };
+    expect(fillUnmatched([old], foods)![0].grams).toBe(240);
+    const byHand = { ...old, gramsSetByHand: true };
+    expect(fillUnmatched([byHand], foods)).toBeNull();
+    expect(flags(old, foods.find((f) => f.id === old.foodId)).drainedTins).toBe(1);
   });
 });
 

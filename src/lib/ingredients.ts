@@ -2,7 +2,7 @@
 import type { Food, Ingredient } from './types';
 import { headingText, isHeading, parseLine, type ParsedLine } from './parse';
 import { searchFoods } from './foods';
-import { toGrams } from './nutrition';
+import { drainedTins, toGrams } from './nutrition';
 
 export const newIngredientId = () => Math.random().toString(36).slice(2, 10);
 
@@ -53,7 +53,8 @@ export function resolveLine(text: string, foods: Food[]): Resolved {
   }
   // a tin of something is the cooked, canned kind
   const tinned = parsed.unit === 'tin' && !/\b(canned|tinned)\b/i.test(parsed.name);
-  const state = tinned && !parsed.state ? 'cooked' : parsed.state;
+  // "drained" (and rinsed) means it came out of a tin or jar, so it's cooked
+  const state = (tinned || /\bdrained\b/i.test(text)) && !parsed.state ? 'cooked' : parsed.state;
   const name = drinkName(parsed.name);
   // "a splash of milk": one splash, whatever a splash of that weighs
   if (parsed.qty == null && parsed.grams == null && /^(?:an?\s+)?(?:splash|dash) of /i.test(parsed.name)) {
@@ -89,8 +90,28 @@ export function resolveLine(text: string, foods: Food[]): Resolved {
 /** Re-work the grams when someone picks a different food (e.g. "1 clove" needs the food's clove weight). */
 export function regram(ing: Ingredient, food: Food | null): Ingredient {
   const parsed = parseLine(ing.text);
-  const g = toGrams({ qty: ing.qty ?? parsed.qty, unit: ing.unit ?? parsed.unit, grams: parsed.grams, size: parsed.size }, food);
+  const g = toGrams({ qty: ing.qty ?? parsed.qty, unit: ing.unit ?? parsed.unit, grams: parsed.grams, size: parsed.size, text: ing.text }, food);
   return { ...ing, foodId: food?.id ?? undefined, grams: g ? Math.round(g.grams * 10) / 10 : ing.grams };
+}
+
+/**
+ * New wording for an ingredient ("4 garlic cloves" → "5 garlic cloves", "400g borlotti beans" →
+ * "2 tins borlotti beans"). The amount is worked out again from the new wording. The food stays,
+ * unless the wording now names a different food, in which case it's matched again.
+ */
+export function reword(ing: Ingredient, text: string, foods: Food[]): Ingredient {
+  const t = text.replace(/\s+/g, ' ').trim();
+  if (!t || t === ing.text) return ing;
+  const fresh = resolveLine(t, foods).ingredient;
+  if (ing.foodId === null) return { ...ing, text: t, qty: fresh.qty, unit: fresh.unit };
+  const sameName = parseLine(t).name.toLowerCase() === parseLine(ing.text).name.toLowerCase();
+  const food = ing.foodId ? foods.find((f) => f.id === ing.foodId) : undefined;
+  if (food && (sameName || !fresh.foodId || fresh.foodId === food.id)) {
+    const next = regram({ ...ing, text: t, qty: fresh.qty, unit: fresh.unit }, food);
+    const g = toGrams(parseLine(t), food);
+    return { ...next, text: t, grams: g ? next.grams : ing.grams, gramsSetByHand: g ? undefined : ing.gramsSetByHand };
+  }
+  return { ...fresh, id: ing.id };
 }
 
 export interface Flags {
@@ -100,6 +121,8 @@ export interface Flags {
   noWeight: boolean;
   /** weight from a typical portion or a spoon / cup measure */
   estimated: boolean;
+  /** "400g beans, drained": counted as this many tins, drained */
+  drainedTins?: number;
   /** raw/dry vs cooked matters a lot for this food */
   checkState: boolean;
 }
@@ -109,11 +132,13 @@ export function flags(ing: Ingredient, food: Food | undefined): Flags {
   const p = parseLine(ing.text);
   const unit = ing.unit ?? p.unit;
   const weighed = p.grams != null || (unit != null && ['g', 'kg', 'oz', 'lb', 'ml', 'l', 'cl'].includes(unit));
+  const tins = !ing.gramsSetByHand ? drainedTins(p, food) : null;
   return {
     noMatch: ing.foodId === undefined,
     noWeight: Boolean(food) && ing.grams == null,
-    estimated: Boolean(food) && ing.grams != null && !weighed && !ing.gramsSetByHand,
-    checkState: Boolean(food && CHANGES_WHEN_COOKED.test(food.name)),
+    estimated: Boolean(food) && ing.grams != null && !weighed && !ing.gramsSetByHand && !tins,
+    drainedTins: tins ?? undefined,
+    checkState: Boolean(food && CHANGES_WHEN_COOKED.test(food.name)) && !tins,
   };
 }
 
@@ -142,7 +167,14 @@ const DRINK = /\b(coffee|tea|cappuccino|latte|flat white|oat ?milk|oat drink|mil
 export function fillUnmatched(ingredients: Ingredient[], foods: Food[]): Ingredient[] | null {
   let changed = false;
   const out = ingredients.map((i) => {
-    if (i.heading || i.gramsSetByHand || i.foodId === null || (i.foodId && i.grams != null)) return i;
+    if (i.heading || i.gramsSetByHand || i.foodId === null) return i;
+    if (i.foodId && i.grams != null) {
+      // saved before a drained tin counted as its drained weight
+      const tins = drainedTins(parseLine(i.text), foods.find((f) => f.id === i.foodId));
+      if (!tins || i.grams === tins * 240) return i;
+      changed = true;
+      return { ...i, grams: tins * 240 };
+    }
     if (i.foodId && !DRINK.test(i.text)) {
       const food = foods.find((f) => f.id === i.foodId);
       const g = food ? toGrams(parseLine(i.text), food) : null;

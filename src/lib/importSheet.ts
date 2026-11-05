@@ -41,6 +41,8 @@ function findHeader(rows: string[][]): { row: number; cols: [number, Slot][] } |
   return null;
 }
 
+/** A part that starts with a count: "1 apple", "2 kiwis", "1/2 fage yoghurt", "½ avocado". */
+const COUNTED = /^\s*(\d+(?:[.,/]\d+)?|[½¼¾⅓])\s*(?:x\s+)?(?!(?:of|days?|weeks?|times|people|persons|friends|guests|mins?|minutes|hours?|hrs?|pm|am|o'?clock|st|nd|rd|th)\b)\p{L}/iu;
 const HAS_AMOUNT = /\d+(?:[.,]\d+)?\s*(g|ml|kg)\b|\b\d+(?:\/\d+)?\s+(?:[a-z]+\s+)?(egg|eggs|clove|cloves|slice|slices|tin|fillet)\b|\bslice\b|\begg\b/i;
 
 /**
@@ -58,7 +60,11 @@ export function cellToMeal(text: string, slot: Slot, who: Who, foods: Food[]): M
     s = s.slice(lab[0].length);
   }
   const leftovers = /^leftovers?\b/i.test(s);
-  if (!HAS_AMOUNT.test(s)) {
+  // "yoghurt 1 apple": a count in the middle of a line starts a new item
+  const split = s.replace(/(?<!\b(?:day|week|no|number|for|at|by|until|from)\b)(\p{L})\s+(?=(?:\d+(?:\/\d+)?|[½¼¾⅓])\s+\p{L})/giu, '$1, ');
+  const counted = splitItems(split).some((part) => COUNTED.test(part));
+  if (counted) s = split;
+  if (!HAS_AMOUNT.test(s) && !counted) {
     return { slot, who, content: { type: 'note', text: s }, label, leftovers: leftovers || undefined };
   }
   // "50g Lentils with 120g Carrots + 150g Chicken. Side: Spinach." → one item per part

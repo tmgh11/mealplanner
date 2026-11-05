@@ -2,7 +2,7 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Icon, MoreMenu, toast } from './ui';
 import { FoodPicker } from './FoodPicker';
 import { useFoods } from '../lib/useFoods';
-import { flags, newIngredientId, regram, resolveLine } from '../lib/ingredients';
+import { flags, newIngredientId, regram, resolveLine, reword } from '../lib/ingredients';
 import { formatQty, parseLine, splitRecipeIngredients } from '../lib/parse';
 import type { Food, Ingredient } from '../lib/types';
 
@@ -27,6 +27,7 @@ export function IngredientsEditor({
   const foods = useFoods();
   const [paste, setPaste] = useState('');
   const [picking, setPicking] = useState<Ingredient | null>(null);
+  const [wording, setWording] = useState<{ id: string; text: string } | null>(null);
 
   const setIng = (id: string, patch: Partial<Ingredient>) => onChange(ingredients.map((i) => (i.id === id ? { ...i, ...patch } : i)));
   const remove = (id: string) => onChange(ingredients.filter((x) => x.id !== id));
@@ -118,6 +119,7 @@ export function IngredientsEditor({
         ...(ing.heading ? [] : [{ label: 'Add a heading above', icon: 'heading' as const, run: () => headingAbove(index) }]),
         ...(index > 0 ? [{ label: 'Move up', icon: 'up' as const, run: () => move(index, index - 1) }] : []),
         ...(index < ingredients.length - 1 ? [{ label: 'Move down', icon: 'down' as const, run: () => move(index, index + 1) }] : []),
+        ...(ing.heading ? [] : [{ label: 'Edit wording', icon: 'edit' as const, run: () => setWording({ id: ing.id, text: ing.text }) }]),
         { label: ing.heading ? 'Remove heading' : 'Remove', icon: 'trash', danger: true, run: () => remove(ing.id) },
       ]}
     />
@@ -134,6 +136,16 @@ export function IngredientsEditor({
     if (!foods.ready) return toast('The food list is still loading — try again in a moment');
     onChange([...ingredients, ...lines.map((l) => resolveLine(l, foods.foods).ingredient)]);
     setPaste('');
+  };
+
+  const saveWording = () => {
+    if (!wording) return;
+    const ing = ingredients.find((i) => i.id === wording.id);
+    setWording(null);
+    if (!ing || !wording.text.trim()) return;
+    if (!foods.ready) return setIng(ing.id, { text: wording.text.trim() });
+    const next = reword(ing, wording.text, foods.foods);
+    if (next !== ing) onChange(ingredients.map((i) => (i.id === ing.id ? next : i)));
   };
 
   const pick = (ing: Ingredient, food: Food | 'not-food') => {
@@ -176,7 +188,33 @@ export function IngredientsEditor({
                 {grip(ing)}
                 <div className="ing-body">
                   <div className="ing-top">
-                    <span className="ing-text">{ing.text}</span>
+                    {wording?.id === ing.id ? (
+                      <textarea
+                        className="ing-text-input"
+                        value={wording.text}
+                        autoFocus
+                        rows={Math.max(1, Math.ceil(wording.text.length / 30))}
+                        onFocus={(e) => e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length)}
+                        onChange={(e) => setWording({ id: ing.id, text: e.target.value.replace(/\n/g, ' ') })}
+                        onBlur={saveWording}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            (e.currentTarget as HTMLTextAreaElement).blur();
+                          }
+                          if (e.key === 'Escape') {
+                            e.stopPropagation(); // cancel the edit, not close the recipe
+                            setWording(null);
+                          }
+                        }}
+                        enterKeyHint="done"
+                        aria-label="Ingredient wording"
+                      />
+                    ) : (
+                      <button className="ing-text" onClick={() => setWording({ id: ing.id, text: ing.text })} aria-label={`Edit ${ing.text}`}>
+                        {ing.text}
+                      </button>
+                    )}
                     {rowMenu(ing, index)}
                   </div>
                   <div className="ing-bottom">
@@ -197,8 +235,9 @@ export function IngredientsEditor({
                       </label>
                     )}
                   </div>
-                  {(f.estimated || f.noWeight || f.checkState) && (
+                  {(f.estimated || f.noWeight || f.checkState || f.drainedTins) && (
                     <div className="ing-flags">
+                      {f.drainedTins && <span className="flag">≈ drained weight of {f.drainedTins} tin{f.drainedTins === 1 ? '' : 's'}</span>}
                       {f.noWeight && <span className="flag warn">Needs a weight</span>}
                       {f.estimated && <span className="flag">≈ typical weight of {formatQty(ing.qty ?? parseLine(ing.text).qty, ing.unit) || 'one'}</span>}
                       {f.checkState && <span className="flag">Raw or cooked? Check the food</span>}

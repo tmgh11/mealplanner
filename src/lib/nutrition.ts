@@ -34,7 +34,26 @@ export interface GramsResult {
 }
 
 /** The weight of a parsed line, using the food's portion weights for counted things. */
-export function toGrams(p: Pick<ParsedLine, 'qty' | 'unit' | 'grams' | 'size'>, food?: Food | null): GramsResult | null {
+/** Tinned beans and pulses: a 400 g tin is about 240 g once drained. */
+const DRAINED_PER_TIN = 240;
+const PULSE = /^(beans|chick ?peas|lentils|peas, marrowfat|pulses)\b/i;
+
+/**
+ * "400g borlotti beans, drained": recipes name the tin, not what's left after draining. A weight
+ * that's a whole number of tins (400 g, 410 g, 800 g…) on a drained pulse counts as that many tins.
+ */
+export function drainedTins(p: Pick<ParsedLine, 'qty' | 'unit' | 'grams'> & { text?: string }, food?: Food | null): number | null {
+  if (!p.text || !/\bdrained\b/i.test(p.text) || !food || !PULSE.test(food.name)) return null;
+  if ((p.unit === 'tin' || p.unit === 'can') && p.grams == null) return p.qty != null && p.qty > 0 ? p.qty : null;
+  const w = p.grams ?? (p.qty != null && p.unit && WEIGHT[p.unit] ? p.qty * WEIGHT[p.unit] : null);
+  if (w == null) return null;
+  const n = Math.round(w / 400);
+  return n >= 1 && n <= 4 && Math.abs(w - n * 400) <= n * 20 ? n : null;
+}
+
+export function toGrams(p: Pick<ParsedLine, 'qty' | 'unit' | 'grams' | 'size'> & { text?: string }, food?: Food | null): GramsResult | null {
+  const tins = drainedTins(p, food);
+  if (tins) return { grams: tins * DRAINED_PER_TIN, estimated: true };
   if (p.grams != null) return { grams: p.grams, estimated: false };
   const sized = (g: number) => g * (p.size ? SIZE[p.size] * (p.size === 'large' ? 1.25 : 1) : 1);
   if (p.unit === 'juice') {

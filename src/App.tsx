@@ -13,6 +13,7 @@ import type { MealContent } from './lib/types';
 import { timesFromNotes } from './lib/times';
 import { moveExtrasToNotes } from './lib/method';
 import { fillUnmatched, fixHeadings } from './lib/ingredients';
+import { cellToMeal } from './lib/importSheet';
 import { useFoods } from './lib/useFoods';
 
 type Tab = 'calendar' | 'shopping' | 'recipes' | 'menus' | 'foods' | 'settings';
@@ -54,7 +55,15 @@ export default function App() {
     const fixedMenus = menus
       .map((menu) => {
         let changed = false;
-        const days = menu.days.map((d) => ({ meals: d.meals.map((m) => { const f = fix(m); if (f) changed = true; return f ?? m; }) }));
+        const days = menu.days.map((d) => ({
+          meals: d.meals.map((m) => {
+            // a menu note that reads as food ("Yoghurt / 1 apple / fruity gelatin") becomes items
+            const fromNote = m.content.type === 'note' ? cellToMeal(m.content.text, m.slot, m.who, list) : null;
+            const f = fromNote?.content.type === 'items' ? { ...m, content: fromNote.content } : fix(m);
+            if (f) changed = true;
+            return f ?? m;
+          }),
+        }));
         return changed ? { ...menu, days } : null;
       })
       .filter((m): m is NonNullable<typeof m> => Boolean(m));

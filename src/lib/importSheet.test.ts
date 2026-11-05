@@ -83,3 +83,14 @@ describe('finding menus in a workbook', () => {
     expect(m.dayNames).toEqual(['', '']);
   });
 });
+
+describe('cells with counts but no weights', () => {
+  it('reads "1 apple" as food, not a note', () => {
+    const m = cellToMeal('Yoghurt\n1 apple\nFruity gelatin', 'snacks' as never, 'nuria', foods)!;
+    expect(m.content.type).toBe('items');
+    if (m.content.type === 'items') expect(m.content.ingredients.map((i) => i.text)).toEqual(['Yoghurt', '1 apple', 'Fruity gelatin']);
+  });
+  it('leaves notes with numbers that aren’t food alone', () => {
+    for (const c of ['Day 3 of the plan', 'Dinner for 4 people', 'Out at 8 pm', 'Pizza night!!!']) expect(cellToMeal(c, 'dinner', 'nuria', foods)!.content.type).toBe('note');
+  });
+});
