@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { typedName, parseAmount, aisleOf, checkedGroups, fmtAmount, groupShopping, lineFor, linesForMeal, planFromCalendar, recipeFactor, shopName, toItem } from './shopping';
+import { fmtCount, typedName, parseAmount, aisleOf, checkedGroups, fmtAmount, groupShopping, lineFor, linesForMeal, planFromCalendar, recipeFactor, shopName, toItem } from './shopping';
 import { buildFoods, type CofidRow } from './foods';
 import { resolveLine } from './ingredients';
 import type { Meal, Recipe, ShopItem } from './types';
@@ -123,13 +123,14 @@ describe('the list as shown', () => {
     expect(fmtAmount([{ grams: 800 }, { grams: 450 }])).toBe('1.3 kg');
     expect(fmtAmount([{ qty: 4, unit: 'clove' }, { qty: 2, unit: 'clove' }])).toBe('6 cloves');
     expect(fmtAmount([{ grams: 200 }, { qty: 1, unit: 'tin' }])).toBe('200 g + 1 tin');
-    expect(fmtAmount([{ qty: 1.5, unit: 'each' }])).toBe('1.5');
+    expect(fmtAmount([{ qty: 1.5, unit: 'each' }])).toBe('1½');
     expect(fmtAmount([{}])).toBe('');
   });
   it('shows the same food as one line, by aisle, with who added it', () => {
     const list = [
       item({ name: 'Chicken breast', foodId: 'c', grams: 120, aisle: 'Meat & fish', addedBy: 'nuria' }),
-      item({ name: 'Chicken', foodId: 'c', grams: 150, aisle: 'Meat & fish', addedBy: 'tom' }),
+      item({ name: 'Chicken breasts', foodId: 'c', grams: 150, aisle: 'Meat & fish', addedBy: 'tom' }),
+      item({ name: 'Chicken thighs', foodId: 'c', grams: 300, aisle: 'Meat & fish', addedBy: 'tom' }),
       item({ name: 'Onion', foodId: 'o', qty: 1, unit: 'each', aisle: 'Fruit & veg' }),
       item({ name: 'Kitchen roll', aisle: 'Other' }),
       item({ name: 'kitchen roll', aisle: 'Other', checked: true }),
@@ -137,7 +138,9 @@ describe('the list as shown', () => {
     const shown = groupShopping(list);
     expect(shown.map((a) => a.aisle)).toEqual(['Fruit & veg', 'Meat & fish', 'Other']);
     const chicken = shown[1].groups[0];
-    expect([chicken.name, chicken.amount, chicken.items.length, chicken.addedBy]).toEqual(['Chicken', '270 g', 2, ['nuria', 'tom']]);
+    expect([chicken.name, chicken.amount, chicken.items.length, chicken.addedBy]).toEqual(['Chicken breast', '270 g', 2, ['nuria', 'tom']]);
+    // same food, different words: kept apart, never renamed
+    expect(shown[1].groups.map((g) => g.name)).toEqual(['Chicken breast', 'Chicken thighs']);
     expect(checkedGroups(list).map((g) => g.name)).toEqual(['kitchen roll']);
   });
 });
@@ -147,6 +150,9 @@ describe('shopping names drop the preparation', () => {
     ['6 x sea bass fillets', 'Sea bass'],
     ['3 fat, fresh red chillies, deseeded and thinly shredded', 'Red chillies'],
     ['4 garlic cloves thinly sliced', 'Garlic'],
+    ['1.5kg pork shoulder, skinless and boneless', 'Pork shoulder, skinless and boneless'],
+    ['2 chicken breasts, skin-on, bone-in', 'Chicken breasts, skin-on and bone-in'],
+    ['6 eggs (free-range), beaten', 'Eggs, free-range'],
     ['1 red onion finely chopped', 'Red onion'],
     ['small bunch coriander roughly chopped', 'Coriander'],
     ['200g chicken breast, diced', 'Chicken breast'],
@@ -236,4 +242,8 @@ describe('counts stay counts on the shopping list', () => {
     expect(aisleOf(undefined, 'dog poo bags')).toBe('Pet');
     expect(aisleOf(undefined, 'hot dogs')).not.toBe('Pet');
   });
+});
+
+describe('fmtCount', () => {
+  it.each([[0.75, '¾'], [1.5, '1½'], [0.333, '⅓'], [2, '2'], [0.8, '0.8'], [2.66, '2⅔'], [0.98, '1']])('%s → %s', (q, s) => expect(fmtCount(q)).toBe(s));
 });

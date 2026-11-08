@@ -12,7 +12,8 @@ import { store, useStore } from './lib/store';
 import type { MealContent } from './lib/types';
 import { timesFromNotes } from './lib/times';
 import { moveExtrasToNotes } from './lib/method';
-import { fillUnmatched, fixHeadings } from './lib/ingredients';
+import { fillUnmatched, fixHeadings, reword } from './lib/ingredients';
+import { hasUsUnits, methodToMetric, toMetric } from './lib/units';
 import { cellToMeal } from './lib/importSheet';
 import { useFoods } from './lib/useFoods';
 
@@ -37,7 +38,7 @@ export default function App() {
         return c === r ? null : c;
       })
       .filter((r): r is NonNullable<typeof r> => Boolean(r));
-    if (moved.length) store.put(...moved);
+    if (moved.length) store.fix(...moved);
   }, [loaded, recipes]);
   // when the food list is ready, and whenever a food is added or corrected: fill in items that
   // had no food or no amount, wherever they are
@@ -68,9 +69,26 @@ export default function App() {
       })
       .filter((m): m is NonNullable<typeof m> => Boolean(m));
     const fixedRecipes = recipes
-      .map((r) => { const ingredients = fillUnmatched(r.ingredients, list); return ingredients ? { ...r, ingredients } : null; })
+      .map((r) => {
+        // cups, pounds and ounces → grams and ml; °F → °C
+        let changed = false;
+        let ingredients = r.ingredients.map((i) => {
+          if (i.heading || !hasUsUnits(i.text)) return i;
+          const next = reword(i, toMetric(i.text), list);
+          if (next !== i) changed = true;
+          return next;
+        });
+        const filled = fillUnmatched(ingredients, list);
+        if (filled) {
+          ingredients = filled;
+          changed = true;
+        }
+        const method = r.method ? methodToMetric(r.method) : r.method;
+        if (method !== r.method) changed = true;
+        return changed ? { ...r, ingredients: changed ? ingredients : r.ingredients, method } : null;
+      })
       .filter((r): r is NonNullable<typeof r> => Boolean(r));
-    if (meals.length || fixedMenus.length || fixedRecipes.length) store.put(...meals, ...fixedMenus, ...fixedRecipes);
+    if (meals.length || fixedMenus.length || fixedRecipes.length) store.fix(...meals, ...fixedMenus, ...fixedRecipes);
   }, [loaded, foods, mealsByDate, menus, recipes]);
   // a recipe link shared into the app (Android's Share menu opens ./?url=… or ./?text=…)
   const [incoming, setIncoming] = useState<string | undefined>(() => {

@@ -4,6 +4,7 @@
  * function fetches the page (a web app can't read other sites directly) and returns those blocks;
  * this turns them into a recipe.
  */
+import { methodToMetric } from './units';
 import { resolveLine } from './ingredients';
 import { parseMinutes } from './times';
 import { splitExtras } from './method';
@@ -161,7 +162,7 @@ export function webToRecipe(w: WebRecipe, owner: Who, foods: Food[], me: Person,
     cookMins: w.cookMins,
     totalMins: w.totalMins,
     ingredients: w.ingredients.map((l) => resolveLine(l, foods).ingredient),
-    method: split.method,
+    method: methodToMetric(split.method),
     notes: [w.description, split.extras].filter(Boolean).join('\n\n') || undefined,
     sourceUrl: w.url,
     tags: w.tags,

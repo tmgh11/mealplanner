@@ -136,9 +136,18 @@ const PREP = /\b(finely|thinly|roughly|coarsely|very|freshly|lightly|sliced|chop
 /** Words that describe the one to pick, not what it is. */
 const DESCRIBING = /^(fat|large|small|medium|big|plump|ripe|good|quality|good-quality|heaped|level|generous|whole|fresh|thick|thin|optional|freshly|finely|thinly|roughly|coarsely|lightly|very|chopped(?!\s+tomato)|sliced|diced|crushed(?!\s+(tomato|chill))|grated|cracked|peeled|shredded|torn)\s+/i;
 
-/** "Chicken breast" from "200g chicken breast, diced"; "Garlic" from "4 garlic cloves thinly sliced"; "Egg" from "Poached egg over steamed asparagus". */
-export function shopName(text: string, food?: Food): string {
-  let name = parseLine(text).name.replace(/^side(s)?\s*(:|of)\s*/i, '').trim();
+/** Words that say which one to buy, kept even when they come after a comma ("pork shoulder, skinless and boneless"). */
+const BUYING = /\b(skinless|boneless|skin[- ]on|bone[- ]in|free[- ]range|organic|unwaxed|smoked|unsmoked|outdoor[- ]bred|wild|frozen|extra[- ]lean|lean|low[- ]fat|reduced[- ]fat|fat[- ]free|full[- ]fat|unsalted|salted|wholemeal|whole ?wheat|gluten[- ]free|dairy[- ]free|unsweetened|thick[- ]cut|dry[- ]cured|corn[- ]fed|sustainably sourced|msc)\b/gi;
+
+/**
+ * The recipe's own words for it, minus the amount and how to prepare it: "Chicken breast" from
+ * "200g chicken breast, diced"; "Garlic" from "4 garlic cloves thinly sliced"; "Pork shoulder,
+ * skinless and boneless" from "1.5kg pork shoulder, skinless and boneless". Never renamed after
+ * the food it was matched to: prosciutto stays prosciutto even if it's counted as ham.
+ */
+export function shopName(text: string, _food?: Food): string {
+  const parsed = parseLine(text);
+  let name = parsed.name.replace(/^side(s)?\s*(:|of)\s*/i, '').trim();
   name = name.split(/\s+(?:with|over|on|served)\s+/i)[0];
   name = name.replace(/^(to serve|for serving|to garnish|optional|garnish)\s*:?\s*/i, '');
   // "Finely chopped onion", "Freshly ground black pepper": describing words in front first
@@ -149,12 +158,10 @@ export function shopName(text: string, food?: Food): string {
   name = name.replace(/\s+(and|or|&)\s*$/i, '').replace(/[\s,;-]+$/, '');
   for (let i = 0; i < 4; i++) name = name.replace(DESCRIBING, '');
   for (let i = 0; i < 3; i++) name = name.replace(/^(boiled|poached|steamed|grilled|roasted|roast|sauteed|sautéed|fried|baked|fresh)\s+/i, '');
-  // if the words don't mention the food at all ("Omelette" matched to mushrooms), name it after the food
-  const foodWords = (food?.name.toLowerCase().replace(COOKING, ' ').match(/[a-z]{3,}/g) ?? [])
-    .map((w) => w.replace(/(es|s)$/, ''))
-    .filter((w) => !['average', 'flesh', 'only', 'whole', 'dried', 'meat', 'and', 'with', 'light', 'dark'].includes(w));
-  if (food && foodWords.length && !foodWords.some((w) => name.toLowerCase().includes(w))) name = food.name.split(',')[0];
-  name = name.trim() || food?.name.split(',')[0] || text;
+  name = name.trim() || parsed.name || text;
+  // buying words that came after a comma or in brackets
+  const kept = [...new Set((parsed.note ?? '').match(BUYING)?.map((w) => w.toLowerCase()) ?? [])].filter((w) => !name.toLowerCase().includes(w));
+  if (kept.length) name += `, ${kept.length === 1 ? kept[0] : `${kept.slice(0, -1).join(', ')} and ${kept[kept.length - 1]}`}`;
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
@@ -277,7 +284,27 @@ export function planFromCalendar(
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 /** Lines with the same key are one line on the list. */
-export const groupKey = (i: Pick<ShopItem, 'foodId' | 'name'> & { key?: string }) => i.key ?? i.foodId ?? `name:${norm(i.name)}`;
+const single = (x: string) => norm(x).replace(/(es|s)\b/g, '');
+/**
+ * Lines with the same key are one line on the list: the same food under the same name. Prosciutto
+ * counted as ham stays apart from ham, and "pork shoulder, boneless" from "pork shoulder".
+ */
+export const groupKey = (i: Pick<ShopItem, 'foodId' | 'name'> & { key?: string }) => {
+  const food = i.key ?? i.foodId;
+  return food ? `${food}~${single(i.name)}` : `name:${norm(i.name)}`;
+};
+
+/** 0.75 → "¾", 1.5 → "1½", 0.33 → "⅓": how a recipe writes it. Anything else to one decimal place. */
+export function fmtCount(q: number): string {
+  const whole = Math.floor(q + 1e-9);
+  const rest = q - whole;
+  const f = ([[0, ''], [0.25, '¼'], [1 / 3, '⅓'], [0.5, '½'], [2 / 3, '⅔'], [0.75, '¾'], [1, '']] as const).find(([v]) => Math.abs(rest - v) < 0.02);
+  if (f) {
+    const w = f[0] === 1 ? whole + 1 : whole;
+    return f[1] ? `${w || ''}${f[1]}` : `${w}`;
+  }
+  return `${Math.round(q * 10) / 10}`;
+}
 
 export function fmtAmount(items: Pick<ShopItem, 'grams' | 'qty' | 'unit'>[]): string {
   const grams = items.reduce((s, i) => s + (i.grams ?? 0), 0);
@@ -288,8 +315,8 @@ export function fmtAmount(items: Pick<ShopItem, 'grams' | 'qty' | 'unit'>[]): st
   for (const [unit, q] of byUnit) {
     const n = Math.round(q * 10) / 10;
     if (unit === 'ml') parts.push(n >= 1000 ? `${Math.round(n / 100) / 10} l` : `${Math.round(n)} ml`);
-    else if (unit === 'each') parts.push(`${n}`);
-    else parts.push(`${n} ${unit}${n <= 1 || ['tsp', 'tbsp', 'dsp'].includes(unit) ? '' : /(ch|sh)$/.test(unit) ? 'es' : 's'}`);
+    else if (unit === 'each') parts.push(fmtCount(q));
+    else parts.push(`${fmtCount(q)} ${unit}${q <= 1 || ['tsp', 'tbsp', 'dsp'].includes(unit) ? '' : /(ch|sh)$/.test(unit) ? 'es' : 's'}`);
   }
   return parts.join(' + ');
 }
@@ -318,7 +345,6 @@ function buildGroups(items: ShopItem[]): ShopGroup[] {
     if (!g.addedBy.includes(i.addedBy)) g.addedBy.push(i.addedBy);
   }
   // a line without a food ("Egg") joins the matching food's line if the names agree
-  const single = (x: string) => norm(x).replace(/(es|s)\b/g, '');
   for (const [key, g] of groups) {
     if (!key.includes('|name:')) continue;
     const twin = [...groups.entries()].find(([k, o]) => k !== key && !k.includes('|name:') && o.checked === g.checked && o.items.some((i) => single(i.name) === single(g.items[0].name)));

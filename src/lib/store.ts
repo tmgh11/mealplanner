@@ -231,6 +231,21 @@ class Store {
     this.onDirty?.();
   }
 
+  /**
+   * Save a tidy-up the app made by itself (a food matched, a heading fixed), not an edit someone
+   * made. It's stamped only just newer than the version it was based on, so if the other phone
+   * edited the same thing meanwhile (a new photo, say), that edit wins when the two meet.
+   */
+  fix(...list: Entry[]) {
+    for (const e of list) {
+      const was = this.entries.get(e.id)?.updatedAt ?? e.updatedAt ?? 0;
+      this.entries.set(e.id, { ...e, updatedAt: was + 1 } as Entry);
+      this.dirty.add(e.id);
+    }
+    this.changed(list.map((e) => e.id));
+    this.onDirty?.();
+  }
+
   remove(id: string) {
     const e = this.entries.get(id);
     if (e) this.put({ ...e, deleted: true });

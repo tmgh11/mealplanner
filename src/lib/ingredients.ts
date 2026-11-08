@@ -3,6 +3,7 @@ import type { Food, Ingredient } from './types';
 import { headingText, isHeading, parseLine, type ParsedLine } from './parse';
 import { searchFoods } from './foods';
 import { drainedTins, toGrams } from './nutrition';
+import { toMetric } from './units';
 
 export const newIngredientId = () => Math.random().toString(36).slice(2, 10);
 
@@ -38,7 +39,9 @@ export function drinkName(name: string): string {
   return n;
 }
 
-export function resolveLine(text: string, foods: Food[]): Resolved {
+export function resolveLine(original: string, foods: Food[]): Resolved {
+  // cups, pounds and ounces become grams and ml before anything else
+  const text = toMetric(original);
   const parsed = parseLine(text);
   if (isHeading(text)) {
     return { ingredient: { id: newIngredientId(), text: headingText(text), foodId: null, heading: true }, parsed, estimated: false, checkState: false, alternatives: [] };

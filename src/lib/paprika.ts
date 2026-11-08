@@ -1,3 +1,4 @@
+import { methodToMetric } from './units';
 import { splitExtras } from './method';
 import { parseMinutes } from './times';
 /**
@@ -69,7 +70,7 @@ export function paprikaToRecipe(p: PaprikaRecipe, owner: Who, foods: Food[], me:
     cookMins: parseMinutes(p.cook_time),
     totalMins: parseMinutes(p.total_time),
     ingredients: lines.map((l) => resolveLine(l, foods).ingredient),
-    method,
+    method: methodToMetric(method),
     notes: notes || undefined,
     sourceUrl: url || undefined,
     tags: [...new Set((p.categories ?? []).map((c) => c.trim()).filter(Boolean))],
